@@ -313,7 +313,7 @@ Vm_interpret:
 	
 		
 Emit_sub_call:
-	// Get body of the word
+ 	// Get body of the word
 	WBody 	%ebx
 	// Calculate relative offset for call
 	mov	%edi,	%eax
