@@ -1,62 +1,82 @@
+#include "const.S"			
 
-	#include "const.S"
+	.globl Vm_interpret
+	.globl Vm_reset
 
 	
 
 	
-/*
- * Dictionary entry structure:
- * Offset	Description
- * =========================
- * $00		Pointer to previous word
- * $04		String containing name of word, pad to 16 bytes
- * $10		Begining of word code
- * ...		Body of word
- *
- ******************************************************************************/
+################################################################################
+# Declare some useful macros
+#
+	
 
+	# Pointer to previous word, needed for constructing
+	# statically new core words
+ 	.SET 		Wprev, 0
 
-/*******************************************************************************
- * Core Macros
- ******************************************************************************/
-
-	.SET 		wprev, 0
-
-	.MACRO 	Defword 	label, name_str
+	# Macro that defines new word
+	.MACRO 	Defword 	label, name
 		.ALIGN 4
 	wstart_\label:
-		.LONG		wprev
-	 	.LOCAL 		nstart
-		.SET 		nstart, .
-		.ASCIZ		"\name_str"
-	 	.FILL 		WNAME_SIZE - ( . - nstart )
-		.SET		wprev, wstart_\label
+		.LONG		Wprev		# This a link to previous word
+	 	.LOCAL 		nstart		# Needed for padding the word
+		.SET 		nstart, .	# name into 32 bytes
+		.ASCIZ		"\name_str"	# store name
+	 	.FILL 		NAMESIZE - ( . - nstart )	# pad it
+		.LONG		0		# Flags
+		.SET		wprev, wstart_\label	# update prev label
 	wcode_\label:
-		xchgl	%esp,%esi
+	# This instruction is going to restore stack for local use in word
+	# Parameter stack resides in %esi register
+		xchgl	%esp,%esi			
 	.ENDM
 	
 	
 	
-	
+
+	# Macro that terminates word
 	.MACRO 	Endword
-		xchgl 	%esp,%esi
+		xchgl 	%esp,%esi	# Restore return stack!
 		ret
 	.ENDM
 	
 
+	
 
-
+	# Macro that defines a variable
 	.MACRO 	Defvar 		label, name_str, value
-		Defword	label, name_str
+		Defword	\label, name_str
 		pushl	1f
 		Endword
-1:
+var_\label:
 		.LONG 	\value
 	.ENDM
 
 
 
+	
+	.MACRO Vm_Save_context context
+		movl	%esp,	(\context+32)
+		movl	$(\context+32),	%esp
+		pushal
+		movl	(\context+32),	%esp
+	.ENDM
 
+
+
+	
+	.MACRO Vm_Restore_context context
+		mov	%eax,	(\context+28)
+		mov	$(\context),	%esp
+		popal
+		mov	(\context+32),	%esp
+	.ENDM
+
+
+
+	
+	# Align register to some value
 	.MACRO	Align reg, n
 		decl	\reg
 		andl	$~(\n-1),\reg
@@ -66,13 +86,15 @@
 
 
 
+	# Get the body of the word
 	.MACRO	WBody reg
-		addl	$(WNAME_SIZE+4),\reg
+		addl	$(NAMESIZE+4),\reg
 	.ENDM
 
 
 
-
+	
+	# Emit a byte into memory pointed by register
 	.MACRO EmitB reg, b
 		movb	\b,	(\reg)
 		incl	\reg
@@ -81,6 +103,7 @@
 
 
 	
+	# Emit a dword into memory pointed by register
 	.MACRO EmitDW 	reg, b
 		movl	\b,	(\reg)
 		addl	$4,	\reg
@@ -88,6 +111,13 @@
 
 
 
+	
+	########################################################################
+	# Macro: 	Is_white
+	# Desc:	 	Check for a white
+	#
+	# 	>breg: 	a character
+	# 	<Z:	set it is white
 	.MACRO	Is_white breg
 		cmpb	$10,	\breg		# CR ?
 		jz	1f
@@ -96,134 +126,192 @@
 		cmpb	$9,	\breg		# TAB ?
 		jz	1f
 		cmpb	$' ',	\breg	# SPACE ?
-		jz	1f
 	1:
 	.ENDM
 
 
+
+	
+	########################################################################
+	# Macro: 	_C_call
+	# Desc:	 	Inner macro for unsafe C function call
+	#		Assumes that every parameter is dword wide
+	#		Fixes stack after call
+	#
+	# 	>size: 	accumulated size of pushed params on stack
+	# 	>func:	called function
+	#	>head:	first parameter
+	#	>tail:	rest of parameters
 	.set _Arg_size,0
-	.MACRO C_call_ size, func, head, tail:vararg
+	.MACRO _C_call size, func, head, tail:vararg
 		.ifb \tail
-			.SET _Arg_size,\size
+			call 	\func
+			add	$_Arg_size,	%esp
 		.else
 			C_call_ \size+4,\func,\tail
 		.endif
 		pushl	\head
 	.ENDM
 
+
+	
+
+	########################################################################
+	# Macro: 	C_call
+	# Desc:	 	Macro for unsafe C function call
+	#		Assumes that every parameter is dword wide
+	#		Fixes stack after call
+	#
+	# 	>func:	called function
+	#	>tail:	rest parameters
 	.MACRO C_Call func, params:vararg
 		C_call_ 4, \func, \params
-		call 	\func
-		add	$_Arg_size,	%esp
+	.ENDM
+
+
+	
+
+	.MACRO Define_context context
+		.ALIGN	32
+		.LCOMM 	\context, 32+4
 	.ENDM
 	
+################################################################################
+#	Some unitialized staticaly allocated blocks of memory
+
 	.SECTION .bss
-
-	.LCOMM Token_buffer, WNAME_SIZE
-	.LCOMM Stack, 128000
-
+	
+	# Shared buffer with next token
+		.LCOMM 	Initialized, 4
+		.LCOMM 	Token_buffer, 	NAMESIZE
+		Define_context	Enviroment_context
+		Define_context	Vm_context
+	# Our stack TODO: think about something more wise
+		.LCOMM 	Stack, 		STACKCELLS
+	# TODO: IN THAT MODEL, DO WE NEED A RETURN STACK??!
+		.LCOMM 	Return_stack,	RETURNCELLS
 	
 	
-	.section .data
-Fmt_hex:		.asciz 	"%x"
-Fmt_dec:		.asciz 	"%d"
-test:			.asciz  "test\n" 
 
+	
+
+################################################################################
+#	Section that contains our code and data
+# 	Code placed in that section because we will emit a lot of code and
+#	for time being the dictionary is linear
+	
+	.section .data 
+
+Fmt_hex:		.asciz 	"%x"	# Printing hex value
+Fmt_dec:		.asciz 	"%d"	# Printing dec value
+
+
+
+	
+	# Pointer to next free cell
+	Defvar here "here" Cells
+
+
+
+
+	# Pointer to last word
+	Defvar last, "last", Wprev
+
+
+
+
+	Defword cells_q "cells?"
+		movl	$Cells,		%eax
+		subl	var_here, 	%eax
+		shrl	$2,		%eax
+		pushl	%eax
+	Endword
+	
+
+
+
+	########################################################################
+	# Word: 	. dot
+	# Desc:		Prints a value from top of stack
+	# 	( n -- )
 	Defword dot "."
 		pushl	$Fmt_dec
 		call	printf
-		add 	$8,	%esp
+		addl 	$8,	%esp
 	Endword
 
-/*******************************************************************************
- *
- *	Subroutine:	Interpret
- *	Description:	Interpets string
- *		> %esi 		pointer to word
- *
- ******************************************************************************/
 
-Interpret_token:
 	
-Interpret:
-	movl	$Token_buffer,	%edi
-	movl	%edi,	%ebx
-	addl	$WNAME_SIZE,%ebx
+	
+# The free cells
+Cells:	
+	.FILL MAXCELLS
+
+#TODO: Shall we clear the Cells block?
+Vm_reset:
+	Vm_Save_context 	Enviroment_context
+	movl	$Cells,	var_here
+	movl	$((STACKCELLS  <<2 - 4) + Stack),		%esi
+	movl	$((RETURNCELLS <<2 - 4) + Return_stack),	%esp
+	Vm_Save_context 	Vm_context
+	Vm_Restore_context 	Enviroment_context
+	ret
+
+
+################################################################################
+# Functions that do everything for us with `parsing'
+# TODO: Make it case insensitive
+
+Get_token:
+	movl	$Token_buffer,	%edi	# %edi our token buffer
+	movl	%edi,	%ebx		# end of buffer for boundary checking
+	addl	$(NAMESIZE-1),%ebx	
 		
 skip_whites:
-	cmpl	%ebx,	%edi
-	jae	end_parse
-	xor	%eax,	%eax
-	lodsb
-	or	%eax,	%eax
-	jz	end_parse
-	Is_white %al
-	jz	skip_whites
-
-	dec	%esi
+	cmpl	%ebx,	%edi		# skip leading whites
+	jae	end_parse		# if we exceeded buffer go out
+	xor	%eax,	%eax		
+	lodsb				# get a character
+	or	%eax,	%eax		# \0?
+	jz	end_parse		# end of parse
+	Is_white %al			# is white?
+	jz	skip_whites		# keep skipping
+	dec	%esi			# push back last character
 parse_token:	
-	cmpl	%ebx,	%edi
-	jae	end_parse_with_interpret
+	cmpl	%ebx,	%edi		
+	jae	end_parse_with_interpret	# another boundary check
 	xor	%eax,	%eax
-	lodsb
-	or	%eax,	%eax
-	jz	end_parse_with_interpret
-	Is_white %al
-	jz	interpret_token
-	stosb
-	jmp	parse_token
-
-interpret_token:
-	
-	jmp	Interpret
+	lodsb					# get a charcter
+	or	%eax,	%eax			# end?
+	jz	end_parse_with_interpret	# intepret what was parsed
+	Is_white %al				# a white?
+	jz	parse_token		# go on and interpret what has been parsed
+	stosb				# otherwise store a character
+	jmp	parse_token		# and loop
 end_parse_with_interpret:
-	xor	%eax,	%eax
-	dec	%ebx
-	cmp	%edi,	%ebx
-	jz	1f
 	stosb
-	
 end_parse:
 	ret
 
-#	.globl main
-	.globl vm_interpret
-vm_interpret:
-	pushl	%ebp
-	lea	8(%esp),	%ebp
-	pushal
-	mov	 (%ebp),	%esi
-	call	Interpret
 
-	movl	$Stack,	%esi
-	add	$(128000-4),%esi
-	movl	$123,	(%esi)
-	call	wcode_dot
-	call 	params_test
-	popal
-	pop	%ebp
-	mov	$Token_buffer, %eax
+
+	
+	
+
+Vm_interpret:
+	cmpl	$0,	Initialized
+	jnz	1f
+	call	Vm_reset
+
+1:	
+	Vm_Save_context		Enviroment_context
+	Vm_Restore_context	Vm_context
+
+	
+	Vm_Restore_context	Enviroment_context
 	ret
 	
-	
-
-dict_begin:	
-
-	Defvar here, "here", dict_begin
-
-	
-	
-/*******************************************************************************
- *
- *	Subroutine:	Emit_sub_call
- *	Description:	Emits needed code for word call
- *		> %ebx 		pointer to word
- *		> %edi		free chunk of memory in dictionary
- *		< %edi		free chunk of memory in dicrionary
- *
- ******************************************************************************/
-dump:
-	.asciz "hello! %x\n"	
+		
 Emit_sub_call:
 	// Get body of the word
 	WBody 	%ebx
@@ -242,102 +330,3 @@ Emit_sub_call:
 	
 Test_code: .fill 128
 	
-.text
-params_test:
-	C_call printf,$Fmt_dec, $12345
-	
-
-
-	
-
-	
-	
-	
-subprepost:	xchgl	%esp,%esi
-subprepost_end:
-	
-/*
-	################################################################################	
-# Get token, separated by whites, and put it in _token
-# TODO: Make it case insesitive (lowercase everything)
-# In:
-# Out:	
-# eax - integer value
-# _token - a token
-_get_token:
-	
-# Skip whites
-	call	_get_key_white_skip
-	mov 	$_token,%edi
-	mov 	$NTAB_ENTRY_SIZE,%ecx
-1:	
-	dec %ecx			# keep the counter becasue we need to clear out _token
-	stosb				# in al we had out character
-	call _get_key			# get next key
-	call _is_white			# is white?
-	jnz 1b				# NO?
-	K4_SAFE_CALL(ungetc,%eax,stdin)	# unget char
-	xor 	%eax,%eax		# clear status (not needed?)
-	rep 	stosb			# Fill rest of _token
-	ret
-	
-	
-	
-################################################################################	
-# Parse literal, string is in _token
-# TODO: Make it work with floats
-# In:
-# Out:	
-# eax - integer value
-_parse_literal:
-# Check for dot if dot is present then we have floating point number
-	push 	%edi
-	mov	$_token,%edi
-# string length
-	xor 	%ecx,%ecx
-	not	%ecx
-	xor 	%eax,%eax
-	cld
-	repnz 	scasb
-	not 	%ecx
-	dec 	%ecx
-
-	mov	$'.',%al
-	mov	$_token,%edi
-	repnz 	scasb
-	jnz	1f	# real
-
-	K4_SAFE_CALL(sscanf,$_token,$_fmt_float,$_tmp_dec_val)
-	cmp	$0,%eax
-	mov 	_tmp_dec_val,%eax
-	pop	%edi
-	ret
-1:
-	cmpb	$10,_var_base
-	jz	2f
-	K4_SAFE_CALL(sscanf,$_token,$_fmt_hex,$_tmp_dec_val)
-	cmp	$0,%eax
-	mov 	_tmp_dec_val,%eax
-	pop	%edi
-	ret
-2:	
-# Use cheap sscanf
-	K4_SAFE_CALL(sscanf,$_token,$_fmt_dec,$_tmp_dec_val)
-3:	
-	cmp	$0,%eax
-	mov 	_tmp_dec_val,%eax
-	pop	%edi
-	ret
-
-	
-Get_key_white_skip:
-	xorl	%eax,	%eax
-	lodsb
-	or	%eax,	%eax
-	jz	End_of_parse
-	call 	Is_white
-	jz _get_key_white_skip	# loop until we will find something
-	ret
-
-End_of_parse:
-*/	
