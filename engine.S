@@ -1,5 +1,9 @@
 #include "const.S"			
+#include "exception.S"
 
+
+
+	
 	.globl Vm_interpret
 	.globl Vm_reset
 
@@ -294,21 +298,56 @@ end_parse:
 	ret
 
 
+msg1:	.asciz "test func 1\n"
+msg2:	.asciz "test func 2\n"
+msg3:	.asciz "The rat's been killed!\n"
 
+Do_something:
+	pushl	$msg1
+	call 	printf
+	add 	$4,	%esp
+	ret
 	
-	
+Do_even_more:
+	Throw
+	pushl	$msg2
+	call 	printf
+	add 	$4,	%esp
+	ret
+
+Do_even_more_and_more:
+	xor	%eax,%eax
+1:
+	inc	%eax
+	cmp	$100, %eax
+	je	2f
+	call 1b
+2:	
+	Throw
+	ret
+
 
 Vm_interpret:
 	cmpl	$0,	Initialized
 	jnz	1f
 	call	Vm_reset
-
 1:	
-	Vm_Save_context		Enviroment_context
-	Vm_Restore_context	Vm_context
+#	Vm_Save_context		Enviroment_context
+#	Vm_Restore_context	Vm_context
 
+	Try_any a_label
+		call Do_something
+		call Do_even_more_and_more
+	Catch 	a_label
+		pushl	$msg3
+		call 	printf
+		add 	$4,	%esp
+	End_try	a_label
 	
-	Vm_Restore_context	Enviroment_context
+
+2:	
+#	Vm_Save_context		Vm_context
+#	Vm_Restore_context	Enviroment_context
 	ret
 	
 		
