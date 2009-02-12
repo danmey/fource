@@ -54,8 +54,6 @@ int just_one_line(FILE* f, int max_buffer, char* o_buffer)
 }
 
 
-
-
 int main()
 {
   char line[257];

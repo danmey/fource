@@ -29,7 +29,7 @@
 		.ASCIZ		"\name_str"	# store name
 	 	.FILL 		NAMESIZE - ( . - nstart )	# pad it
 		.LONG		0		# Flags
-		.SET		wprev, wstart_\label	# update prev label
+		.SET		Wprev, wstart_\label	# update prev label
 	wcode_\label:
 	# This instruction is going to restore stack for local use in word
 	# Parameter stack resides in %esi register
@@ -71,10 +71,9 @@ var_\label:
 
 	
 	.MACRO Vm_Restore_context context
-		mov	%eax,	(\context+28)
-		mov	$(\context),	%esp
+		movl	$(\context),	%esp
 		popal
-		mov	(\context+32),	%esp
+		movl	(\context+32),	%esp 
 	.ENDM
 
 
@@ -259,12 +258,12 @@ Vm_reset:
 	movl	$((RETURNCELLS <<2 - 4) + Return_stack),	%esp
 	Vm_Save_context 	Vm_context
 	Vm_Restore_context 	Enviroment_context
+	movl		$1,	Initialized
 	ret
 
 
 ################################################################################
 # Functions that do everything for us with `parsing'
-# TODO: Make it case insensitive
 
 Get_token:
 	movl	$Token_buffer,	%edi	# %edi our token buffer
@@ -297,57 +296,67 @@ end_parse_with_interpret:
 end_parse:
 	ret
 
+#Do_something:
+#	pushl	$msg1
+#	call 	printf
+#	add 	$4,	%esp
+#	ret
+#	
+#Do_even_more:
+#	Throw
+#	pushl	$msg2
+#	call 	printf
+#	add 	$4,	%esp
+#	ret
 
-msg1:	.asciz "test func 1\n"
-msg2:	.asciz "test func 2\n"
-msg3:	.asciz "The rat's been killed!\n"
+#Do_even_more_and_more:
+#	xor	%eax,%eax
+#1:
+#	inc	%eax
+#	cmp	$100, %eax
+#	je	2f
+#	call 1b
+#2:	
+#	Throw
+#	ret
 
-Do_something:
-	pushl	$msg1
-	call 	printf
-	add 	$4,	%esp
-	ret
+
 	
-Do_even_more:
-	Throw
-	pushl	$msg2
-	call 	printf
-	add 	$4,	%esp
-	ret
+#	Try_any a_label
+#		call Do_something
+#		call Do_even_more_and_more
+#	Catch 	a_label
+#		pushl	$msg3
+#		call 	printf
+#		add 	$4,	%esp
+#	End_try	a_label
 
-Do_even_more_and_more:
-	xor	%eax,%eax
-1:
-	inc	%eax
-	cmp	$100, %eax
-	je	2f
-	call 1b
-2:	
-	Throw
-	ret
-
+msg1:	.asciz "%s\n"
+# msg2:	.asciz "test func 2\n"
+# msg3:	.asciz "The rat's been killed!\n"
 
 Vm_interpret:
 	cmpl	$0,	Initialized
 	jnz	1f
 	call	Vm_reset
-1:	
-#	Vm_Save_context		Enviroment_context
-#	Vm_Restore_context	Vm_context
-
-	Try_any a_label
-		call Do_something
-		call Do_even_more_and_more
-	Catch 	a_label
-		pushl	$msg3
-		call 	printf
-		add 	$4,	%esp
-	End_try	a_label
-	
-
-2:	
-#	Vm_Save_context		Vm_context
-#	Vm_Restore_context	Enviroment_context
+1:
+	Vm_Save_context		Enviroment_context
+	Vm_Restore_context	Vm_context
+/*	pushl	%ebp
+	movl	%esp,		%ebp
+	movl	8(%ebp),	%esi
+	call	Get_token
+	call	Find_word
+	pushl	%eax
+	pushl	$Fmt_hex
+#	pushl	$Token_buffer
+#	pushl	$msg1
+	call	printf
+	addl 	$8,	%esp
+*/
+	Vm_Save_context		Vm_context
+	Vm_Restore_context	Enviroment_context
+//	pop	%ebp
 	ret
 	
 		
@@ -364,8 +373,41 @@ Emit_sub_call:
 	EmitDW	%edi,	%eax
 	EmitB	%edi,	$0xC3
 	ret
+
+# TODO: Make it case insensitive
+Find_word:
+	movl	var_last,	%edx
+next:	
+	movl	$NAMESIZE,	%ecx
+	leal	4(%edx),	%edi
+	mov	$Token_buffer,	%esi
+	repne	cmpsb
+#	jnz	not_found
+	mov	%ecx,		%edx
+	movl	%edx,		%eax
+	ret
+not_found:
+	mov	(%edx),		%edx
+	or	%edx,		%edx
+	jnz	next
+	xor	%eax,		%eax
+	ret
 .align 4
+
 
 	
 Test_code: .fill 128
 	
+	# pad with zeros
+	inc	%ebx
+1:	
+	cmpl	%edi,	%ebx
+	jz	1f
+	xor	%eax,%eax
+	stosb
+	jmp	1b
+1:	
+	ret
+
+
+
