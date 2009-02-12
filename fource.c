@@ -54,12 +54,12 @@ int just_one_line(FILE* f, int max_buffer, char* o_buffer)
 }
 
 
-
-
 int main()
 {
   char line[257];
   while( EOF != just_one_line(stdin, 256, line) )
-      Vm_interpret(line);
+    {
+      puts(Vm_interpret(line));
+    }
   return 0;
 }

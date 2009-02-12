@@ -121,7 +121,7 @@ var_\label:
 	#
 	# 	>breg: 	a character
 	# 	<Z:	set it is white
-	.MACRO	Is_white breg
+	.MACRO	Is_white breg, white_label
 		cmpb	$10,	\breg		# CR ?
 		jz	1f
 		cmpb	$13,	\breg       	# LF ?
@@ -130,6 +130,7 @@ var_\label:
 		jz	1f
 		cmpb	$' ',	\breg	# SPACE ?
 	1:
+		jz \white_label	
 	.ENDM
 
 
@@ -265,34 +266,40 @@ Vm_reset:
 ################################################################################
 # Functions that do everything for us with `parsing'
 
+	.MACRO Loadch zero_label
+		xor	%eax,	%eax
+		lodsb
+		or	%eax,	%eax
+		jz	\zero_label
+	.ENDM
+
+	.MACRO	BoundLow left,right,not_in_bounds_label
+		cmp	\right,\left
+		jae	\not_in_bounds_label
+	.ENDM
+	
 Get_token:
 	movl	$Token_buffer,	%edi	# %edi our token buffer
+	mov	$NAMESIZE,	%ecx
+	xor	%eax,%eax
+	rep	stosb
+					# zero out
+	movl	$Token_buffer,	%edi	# %edi our token buffer
 	movl	%edi,	%ebx		# end of buffer for boundary checking
-	addl	$(NAMESIZE-1),%ebx	
+	addl	$(NAMESIZE),%ebx	
 		
 skip_whites:
-	cmpl	%ebx,	%edi		# skip leading whites
-	jae	end_parse		# if we exceeded buffer go out
-	xor	%eax,	%eax		
-	lodsb				# get a character
-	or	%eax,	%eax		# \0?
-	jz	end_parse		# end of parse
-	Is_white %al			# is white?
-	jz	skip_whites		# keep skipping
+	BoundLow	%edi,%ebx,end_parse
+	Loadch		end_parse
+	Is_white 	%al,skip_whites			# is white?
+
 	dec	%esi			# push back last character
 parse_token:	
-	cmpl	%ebx,	%edi		
-	jae	end_parse_with_interpret	# another boundary check
-	xor	%eax,	%eax
-	lodsb					# get a charcter
-	or	%eax,	%eax			# end?
-	jz	end_parse_with_interpret	# intepret what was parsed
-	Is_white %al				# a white?
-	jz	parse_token		# go on and interpret what has been parsed
+	BoundLow	%edi,%ebx,end_parse
+	Loadch		end_parse
+	Is_white %al,	end_parse
 	stosb				# otherwise store a character
 	jmp	parse_token		# and loop
-end_parse_with_interpret:
-	stosb
 end_parse:
 	ret
 
@@ -340,22 +347,23 @@ Vm_interpret:
 	jnz	1f
 	call	Vm_reset
 1:
-	Vm_Save_context		Enviroment_context
-	Vm_Restore_context	Vm_context
-/*	pushl	%ebp
+#	Vm_Save_context		Enviroment_context
+#	Vm_Restore_context	Vm_context
+	pushl	%ebp
 	movl	%esp,		%ebp
 	movl	8(%ebp),	%esi
 	call	Get_token
-	call	Find_word
-	pushl	%eax
-	pushl	$Fmt_hex
+	mov	$Token_buffer,	%eax
+#	call	Find_word
+#	pushl	%eax
+#	pushl	$Fmt_hex
 #	pushl	$Token_buffer
 #	pushl	$msg1
-	call	printf
-	addl 	$8,	%esp
-*/
-	Vm_Save_context		Vm_context
-	Vm_Restore_context	Enviroment_context
+#	call	printf
+#	addl 	$8,	%esp
+	popl	%ebp
+#	Vm_Save_context		Vm_context
+#	Vm_Restore_context	Enviroment_context
 //	pop	%ebp
 	ret
 	
