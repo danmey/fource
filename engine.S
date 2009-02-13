@@ -26,7 +26,7 @@
 		.LONG		Wprev		# This a link to previous word
 	 	.LOCAL 		nstart		# Needed for padding the word
 		.SET 		nstart, .	# name into 32 bytes
-		.ASCIZ		"\name_str"	# store name
+		.ASCIZ		"\name"	# store name
 	 	.FILL 		NAMESIZE - ( . - nstart )	# pad it
 		.LONG		0		# Flags
 		.SET		Wprev, wstart_\label	# update prev label
@@ -50,7 +50,7 @@
 
 	# Macro that defines a variable
 	.MACRO 	Defvar 		label, name_str, value
-		Defword	\label, name_str
+		Defword	\label, \name_str
 		pushl	1f
 		Endword
 var_\label:
@@ -191,9 +191,9 @@ var_\label:
 		Define_context	Enviroment_context
 		Define_context	Vm_context
 	# Our stack TODO: think about something more wise
-		.LCOMM 	Stack, 		STACKCELLS
+		.LCOMM 	Stack, 		STACKCELLS<<2
 	# TODO: IN THAT MODEL, DO WE NEED A RETURN STACK??!
-		.LCOMM 	Return_stack,	RETURNCELLS
+		.LCOMM 	Return_stack,	RETURNCELLS<<2
 	
 	
 
@@ -208,6 +208,7 @@ var_\label:
 
 Fmt_hex:		.asciz 	"%x"	# Printing hex value
 Fmt_dec:		.asciz 	"%d"	# Printing dec value
+save_eax:	.LONG  0
 
 
 
@@ -218,8 +219,6 @@ Fmt_dec:		.asciz 	"%d"	# Printing dec value
 
 
 
-	# Pointer to last word
-	Defvar last, "last", Wprev
 
 
 
@@ -243,6 +242,9 @@ Fmt_dec:		.asciz 	"%d"	# Printing dec value
 		call	printf
 		addl 	$8,	%esp
 	Endword
+
+		# Pointer to last word
+	Defvar last, "last", wstart_last
 
 
 	
@@ -343,28 +345,30 @@ msg1:	.asciz "%s\n"
 # msg3:	.asciz "The rat's been killed!\n"
 
 Vm_interpret:
+	pushl	%ebp
+	movl	%esp,		%ebp
+	movl	8(%ebp),	%eax
+	mov	%eax,		save_eax
 	cmpl	$0,	Initialized
 	jnz	1f
 	call	Vm_reset
 1:
-#	Vm_Save_context		Enviroment_context
-#	Vm_Restore_context	Vm_context
-	pushl	%ebp
-	movl	%esp,		%ebp
-	movl	8(%ebp),	%esi
+	Vm_Save_context		Enviroment_context
+	Vm_Restore_context	Vm_context
+	mov	save_eax,	%esi
 	call	Get_token
-	mov	$Token_buffer,	%eax
-#	call	Find_word
-#	pushl	%eax
-#	pushl	$Fmt_hex
-#	pushl	$Token_buffer
-#	pushl	$msg1
-#	call	printf
-#	addl 	$8,	%esp
-	popl	%ebp
-#	Vm_Save_context		Vm_context
-#	Vm_Restore_context	Enviroment_context
-//	pop	%ebp
+	mov	save_eax,	%edi
+	call	Find_word
+	or	%eax,%eax
+	jz	1f
+	add	$4,	%eax
+1:	
+	mov	%eax,		save_eax
+	Vm_Save_context		Vm_context
+	Vm_Restore_context	Enviroment_context
+	movl	save_eax,%eax
+	pop	%ebp
+#	xor	%eax,%eax
 	ret
 	
 		
@@ -389,13 +393,17 @@ next:
 	movl	$NAMESIZE,	%ecx
 	leal	4(%edx),	%edi
 	mov	$Token_buffer,	%esi
-	repne	cmpsb
-#	jnz	not_found
-	mov	%ecx,		%edx
-	movl	%edx,		%eax
+	repe	cmpsb
+#	pushl	%ecx
+#	pushl	$Fmt_dec
+#	call 	printf
+#	add	$8,	%esp
+	or	%ecx,	%ecx
+	jnz	not_found
+	mov	%edx,	%eax
 	ret
 not_found:
-	mov	(%edx),		%edx
+	movl	(%edx),		%edx
 	or	%edx,		%edx
 	jnz	next
 	xor	%eax,		%eax

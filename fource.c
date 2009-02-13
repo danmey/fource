@@ -59,7 +59,9 @@ int main()
   char line[257];
   while( EOF != just_one_line(stdin, 256, line) )
     {
-      puts(Vm_interpret(line));
+      char* word = Vm_interpret(line);
+      if ( word != NULL )
+	puts(word);
     }
   return 0;
 }
