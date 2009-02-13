@@ -78,6 +78,14 @@ var_\label:
 
 
 
+	# TODO: Implement rest of the registers
+	.MACRO	Vm_set_context_reg context, reg, val
+		.IF	\reg == %eax
+			mov	\val, (\context+28)
+		.ENDIF
+	.ENDM
+
+
 	
 	# Align register to some value
 	.MACRO	Align reg, n
@@ -243,6 +251,8 @@ save_eax:	.LONG  0
 		addl 	$8,	%esp
 	Endword
 
+	Defvar state, "state", VM_STATE_COMPILING
+	
 		# Pointer to last word
 	Defvar last, "last", wstart_last
 
@@ -345,30 +355,41 @@ msg1:	.asciz "%s\n"
 # msg3:	.asciz "The rat's been killed!\n"
 
 Vm_interpret:
-	pushl	%ebp
-	movl	%esp,		%ebp
-	movl	8(%ebp),	%eax
-	mov	%eax,		save_eax
 	cmpl	$0,	Initialized
 	jnz	1f
 	call	Vm_reset
 1:
+	pushl	%ebp
+	movl	%esp,		%ebp
+	movl	8(%ebp),	%eax
+	Vm_set_context_reg 	Vm_context,%eax,%eax		
 	Vm_Save_context		Enviroment_context
 	Vm_Restore_context	Vm_context
-	mov	save_eax,	%esi
+	mov	%eax,	%esi
+
+word_loop:	
 	call	Get_token
-	mov	save_eax,	%edi
-	call	Find_word
-	or	%eax,%eax
-	jz	1f
-	add	$4,	%eax
-1:	
-	mov	%eax,		save_eax
+	xor	%eax,	%eax
+	cmpl	$Token_buffer,%edi
+	jz	interpreted
+	pushl	$Token_buffer
+	pushl	$msg1
+	call 	printf
+	add	$8,	%esp
+
+#	call	Find_word
+
+#	or	%eax,%eax
+#	jz	interpreted
+#	add	$4,	%eax
+	jmp	word_loop
+
+interpreted:	
+	mov		%esi, %eax
+	Vm_set_context_reg 	Enviroment_context,%eax,%eax		
 	Vm_Save_context		Vm_context
 	Vm_Restore_context	Enviroment_context
-	movl	save_eax,%eax
 	pop	%ebp
-#	xor	%eax,%eax
 	ret
 	
 		

@@ -60,8 +60,9 @@ int main()
   while( EOF != just_one_line(stdin, 256, line) )
     {
       char* word = Vm_interpret(line);
-      if ( word != NULL )
-	puts(word);
+      //      if ( word != NULL )
+	//	puts(word);
+      //
     }
   return 0;
 }
