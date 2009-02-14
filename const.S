@@ -51,7 +51,19 @@
 	} \
 	if( VM_STATE_EXCEPTION & (a) ) 
 
-/* TODO: Define set of exceptions */
-#define VM_EXID_WORD_NOT_FOUND 	0
+/*
+ *	Exceptions
+ */
+	
+/* TODO: Define further exceptions */
 
+/* Any exception */
+#define ANY_EXCEPTION			0
+/* End of stream exception, occurs when VM accepts input
+   when there is no more character left.
+   Used for reclaiming the control flow to VM host */
+#define END_OF_STREAM_EXCEPTION		1
+/* Word is not found */
+#define WORD_NOT_FOUND_EXCEPTION	2
+	
 

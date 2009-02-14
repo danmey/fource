@@ -2,7 +2,6 @@
 #include "exception.S"
 
 
-
 	
 	.globl Vm_interpret
 	.globl Vm_reset
@@ -59,22 +58,6 @@ var_\label:
 
 
 
-	
-	.MACRO Vm_Save_context context
-		movl	%esp,	(\context+32)
-		movl	$(\context+32),	%esp
-		pushal
-		movl	(\context+32),	%esp
-	.ENDM
-
-
-
-	
-	.MACRO Vm_Restore_context context
-		movl	$(\context),	%esp
-		popal
-		movl	(\context+32),	%esp 
-	.ENDM
 
 
 
@@ -185,7 +168,7 @@ var_\label:
 
 	.MACRO Define_context context
 		.ALIGN	32
-		.LCOMM 	\context, 32+4
+		.LCOMM 	\context, 32+8
 	.ENDM
 	
 ################################################################################
@@ -198,6 +181,7 @@ var_\label:
 		.LCOMM 	Token_buffer, 	NAMESIZE
 		Define_context	Enviroment_context
 		Define_context	Vm_context
+		Define_context	Vm_Get_char_context
 	# Our stack TODO: think about something more wise
 		.LCOMM 	Stack, 		STACKCELLS<<2
 	# TODO: IN THAT MODEL, DO WE NEED A RETURN STACK??!
@@ -216,8 +200,8 @@ var_\label:
 
 Fmt_hex:		.asciz 	"%x"	# Printing hex value
 Fmt_dec:		.asciz 	"%d"	# Printing dec value
-save_eax:	.LONG  0
-
+save_eax:	.LONG  	0
+Input_stream:	.LONG	0
 
 
 	
@@ -258,6 +242,7 @@ save_eax:	.LONG  0
 
 
 	
+#include "stream.S"
 	
 # The free cells
 Cells:	
@@ -354,7 +339,8 @@ msg1:	.asciz "%s\n"
 # msg2:	.asciz "test func 2\n"
 # msg3:	.asciz "The rat's been killed!\n"
 
-Vm_interpret:
+#2Vm_interpret:
+	Vm_Save_context	Enviroment_context
 	cmpl	$0,	Initialized
 	jnz	1f
 	call	Vm_reset
@@ -362,11 +348,21 @@ Vm_interpret:
 	pushl	%ebp
 	movl	%esp,		%ebp
 	movl	8(%ebp),	%eax
-	Vm_set_context_reg 	Vm_context,%eax,%eax		
-	Vm_Save_context		Enviroment_context
-	Vm_Restore_context	Vm_context
-	mov	%eax,	%esi
+	Vm_Restore_context Enviroment_context
+	ret
 
+	Vm_set_context_reg 	Vm_context,%eax,%eax		
+	Vm_Restore_context	Vm_context
+		mov	%eax,	Input_stream
+
+#	Try	END_OF_STREAM_EXCEPTION, a_label2
+#		call	Get_word
+#		Catch	a_label2
+#	End_try	a_label2
+	Vm_Restore_context Enviroment_context
+	ret
+
+	
 word_loop:	
 	call	Get_token
 	xor	%eax,	%eax
@@ -385,7 +381,7 @@ word_loop:
 	jmp	word_loop
 
 interpreted:	
-	mov		%esi, %eax
+	movl		%esi, %eax
 	Vm_set_context_reg 	Enviroment_context,%eax,%eax		
 	Vm_Save_context		Vm_context
 	Vm_Restore_context	Enviroment_context
@@ -415,10 +411,6 @@ next:
 	leal	4(%edx),	%edi
 	mov	$Token_buffer,	%esi
 	repe	cmpsb
-#	pushl	%ecx
-#	pushl	$Fmt_dec
-#	call 	printf
-#	add	$8,	%esp
 	or	%ecx,	%ecx
 	jnz	not_found
 	mov	%edx,	%eax
@@ -429,7 +421,6 @@ not_found:
 	jnz	next
 	xor	%eax,		%eax
 	ret
-.align 4
 
 
 	

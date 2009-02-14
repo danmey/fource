@@ -32,9 +32,10 @@
 #define EXCEPTION_STACKFRAME	(4+4+32)
 	
 	
-	.MACRO 	Try_any catch_label
+	.MACRO 	Try exception_id catch_label 
 		pushl	$\catch_label	# store our return address on stack
 		pushal			# store our context (EASY!)
+		pushl	\exception_id
 		pushl	$EXCEPTION_MARKER
 	.ENDM
 
@@ -50,18 +51,25 @@
 
 
 	
-	.MACRO End_try catch_label
+	.MACRO 	End_try catch_label
 		\catch_label\()_end:
 	.ENDM
 
 	
 
 	
-	.MACRO  Throw
+	.MACRO  Throw	exception_id
+		mov	\exception_id,	%ecx
 	1:
 		popl	%edx
 		cmpl	$EXCEPTION_MARKER,%edx
 		jnz	1b
+		popl	%edx
+		or	%edx,	%edx
+		jz	2f
+		cmp	%ecx,	%edx
+		jnz	1b
+	2:	
 		popal
 		ret
 	.ENDM
