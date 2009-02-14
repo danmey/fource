@@ -1,28 +1,31 @@
 ################################################################################
 #
-#	Continuation module
-#	===================
+# 	Continuation module
+# 	===================
 #
-# This module allows one to program in CPS (Continuation Passing Style)
-# Every registered continuation has a static block alocated in .bss section
-# that preserves return and parameter stack (remember we are implementing Forth)
-# and block that saves context plus address pass the return continuation call
-#, when the continuation is called, current
-# continuation is saved in target continuation block, the target context is
-# restored and the program runs in previously saved state.
-# Parameter passing to a continuation not implemented yet
-# This implementation doesn't care about global roots.
-# Continuations allow us to easily implement:
-# - Green threads
-# - Exceptions
-# - Tail recursion
-#
+#	This module allows one to program in CPS (Continuation Passing Style).
+#	Every registered continuation has a static block alocated in
+#	.bss section that preserves return and parameter stack
+#	(remember we are implementing Forth) and block that saves
+#	context plus address pass the return continuation call, when
+#	the continuation is called, current continuation is saved in
+#	target continuation block, the target context is restored and
+#	the program runs in previously saved state. Parameter passing
+#	to a continuation not implemented yet This implementation
+#	doesn't care about global roots.
+#	Continuations allow us to
+#	easily implement:
+#	- Green threads - Exceptions - Tail
+#	recursion
+
 
 
 #include "context.S"
 	
 #define STACKDEPTH	256
 
+/* Let's declare some helper macros */
+	
 	.MACRO Struct
 		.struct 0
 	.ENDM
@@ -34,20 +37,30 @@
 	.MACRO End_struct
 		.data
 	.ENDM
+
+
+
 	
+/* Our continuation context data structure */
 	Struct
-		field 	cnt_stack, 	(STACKDEPTH<<2)
+		/* Parameter stack */
+		field 	cnt_stack, 	(STACKDEPTH<<2)	
+		/* Return stack */
 		field 	cnt_ret_stack, 	(STACKDEPTH<<2)
+		/* Register */
 		field 	cnt_context,	32+4
+		/* Instruction pointer ! */
 		field 	cnt_IP,		4
+		/* Continuation to be called on exit */
 		field 	cnt_exit_cnt,	4
+		/* If the block was iniited? */
 		field 	cnt_init,	4
+		/* Size tag for out structure */
 		field 	cnt_size,	0
 	End_struct
 	
 	
 	
-	.ALTMACRO
 
 	.MACRO Define_continuation name
 		.bss
@@ -74,7 +87,7 @@
 		8:	
 			Vm_Restore_context (\name + cnt_context)
 	
-		
+		# Ugly.
 		.IFDEF first
 			.PURGEM	Call_with_cc
 			.PURGEM	Call_with_cc2
@@ -85,19 +98,10 @@
 			Vm_Save_context (\name + cnt_context)
 			movl	$9f,	(\name + cnt_IP)
 			jmp	callee_code
-9:	
-	
+		9:	
 		.ENDM
 
-		.MACRO Call_with_cc2 callee_code
-			.data
-			Vm_Save_context (\name + cnt_context)
-#			movl	$9f,	(\name + cnt_IP)
-			jmp	callee_code
-9:	
-	
-		.ENDM
-
+		
 	.SET first,0
 	.ENDM
 
