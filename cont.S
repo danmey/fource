@@ -61,7 +61,7 @@
 	
 	
 	
-
+/* Define the continuation */
 	.MACRO Define_continuation name
 		.bss
 
@@ -72,37 +72,52 @@
 			.LCOMM	\name, cnt_size
 		.data
 
+		/* Our entry point */
 		\name\()_code:
+			/* If we are inited don't init */
 			cmp	$0, (\name + cnt_init)
 			jnz	9f
+			/* Stacks */
 			lea	(\name + cnt_stack +(STACKDEPTH<<2)-4),%esi
 			lea	(\name + cnt_ret_stack	+(STACKDEPTH<<2)-4),%esp
+			/* Save our context */
 			Vm_Save_context (\name + cnt_context)
+			/* Trick, in first invocation it points to 8f */
 			movl	$8f,	(\name + cnt_IP)
+			/* We are inited */
 			movl	$1, (\name + cnt_init)
 		9:	
 			Vm_Restore_context (\name + cnt_context)
+			/* Jump to the code where we suspended */
 			pushl	(\name + cnt_IP)
 			ret
-		8:	
+		8:
+			/* This is first invocation */
 			Vm_Restore_context (\name + cnt_context)
 	
 		# Ugly.
 		.IFDEF first
 			.PURGEM	Call_with_cc
-			.PURGEM	Call_with_cc2
+			.PURGEM Call_continuation 
 		.ENDIF
 		
 		.MACRO Call_with_cc callee_code
 			.data
+			/* Save the context */
 			Vm_Save_context (\name + cnt_context)
+			/* Set the ip to the next instruction */
 			movl	$9f,	(\name + cnt_IP)
-			jmp	callee_code
+			jmp	\callee_code
 		9:	
 		.ENDM
 
-		
-	.SET first,0
+		.MACRO Call_continuation callee
+		8:	
+			Call_with_cc \callee
+			movl	$8b, (\name+cnt_IP)
+		.ENDM
+		# Ugly.
+		.SET first,0
 	.ENDM
 
 	.bss
@@ -110,55 +125,34 @@
 	.data
 fmt_dec:	.asciz "%d\n"
 	
-
+	/* Lets do some generetion function, print numbers */
 	Define_continuation Counter
 		mov	$0,%ebx
 	loop:
 		inc	%ebx
 		pushal
-		push	%ebx
-		push	$fmt_dec
-		call	printf
-		add	$8,%esp
+			push	%ebx
+			push	$fmt_dec
+			call	printf
+			add	$8,%esp
 		popal
 		Call_with_cc Get_word_code
+	/* Loop forever :-) */
 		jmp	loop
 
 	
 	Define_continuation Get_word
-	1:	
-		Call_with_cc Counter_code
-		movl	$1b, (Get_word+cnt_IP)
+		Call_continuation Counter_code
 		Vm_Restore_context Vm_context
 		ret
 
+	
 get_word:
 	Vm_Save_context Vm_context
 	call Get_word_code
 	ret
 	
 #	End_Continuation Get_word
-/*
-	movl		$Token_buffer,	%edi	# %edi our token buffer
-whites:	
-	call 		Get_char
-	Is_white 	%cl,whites
-	movl		$Token_buffer,	%edi
-	Store_char	%edi
-char_loop:	
-	call Get_char
-	Store_char	%edi
-	Is_white 	%cl,end_of_word
-	jmp char_loop
-end_of_word:
-	ret
-
-Get_char:
-	Next_char 	1f
-	ret
-1:
-	End_continuation
-*/
 	
 	.GLOBL Vm_interpret
  Vm_interpret:
