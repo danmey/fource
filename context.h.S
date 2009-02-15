@@ -1,3 +1,13 @@
+
+
+
+
+#ifndef CONTEXT_H_S
+#define CONTEXT_H_S
+
+
+
+	
 	.MACRO Define_context context
 		.ALIGN	32
 		.LCOMM 	\context, 32+4
@@ -15,3 +25,9 @@
 		popal
 		movl	(\context+32),	%esp
 	.ENDM
+
+
+
+
+#endif
+### #ifndef CONTEXT_H_S
