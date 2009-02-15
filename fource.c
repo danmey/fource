@@ -9,11 +9,9 @@ void  Vm_reset    (void);
 
 
 
-/* TODO: Make it printf friendly... */
-#define PANIC(_msg,rcode) ({ fprintf(stderr,"Fatal: %s\n", (_msg)); exit(rcode); })
-#define FEAR(_msg) ({ fprintf(stderr, "Warning: %s\n", (_msg)); })
-
-
+/* FIX: refactored by (JO) */
+#define PANIC(_rcode,...) ( {fprintf(stderr, "Fatal: "); fprintf(stderr, __VA_ARGS__ ) ; exit(_rcode); })
+#define FEAR(...) ({fprintf(stderr, "Warning: "); fprintf(stderr,  __VA_ARGS__ ); })
 
 
 /* TODO: Make it windows friendly... */
@@ -36,8 +34,7 @@ int just_one_line(FILE* f, int max_buffer, char* o_buffer)
       if ( ch != EOF )
 	{
 	  char msg[128];
-	  sprintf(msg, "Line exceeded %d characters. Truncated.", max_read-1);
-	  FEAR(msg);
+	  FEAR("Line exceeded %d characters. Truncated.",msg);
 	  return -2;
 	}
     }
