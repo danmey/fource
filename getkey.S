@@ -113,13 +113,23 @@ fmt_str:	.ASCIZ "%s\n"
 ## 	Exit_continuation
 ## 	ret
 
+Define_continuation_context Get_key_data2
+Define_continuation Get_key2
+1:
+	pushl	$msg2
+	call	printf
+	Call_with_cc Get_key, Get_key_data
+	jmp 1b
 
 msg:	.asciz "Hello world!\n"
+msg2:	.asciz "Hello world!\n"
+	
 Define_continuation_context Get_key_data
 Define_continuation Get_key
 1:
 	pushl	$msg
 	call	printf
+	Call_with_cc Get_key2, Get_key_data2
 	Exit_continuation
 	jmp 1b
 	

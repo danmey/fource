@@ -11,7 +11,9 @@
 ### - register contents
 ### - parameter and return stack
 ### - intruction pointer
-### 
+###
+### Our continuation implementation uses %ebp register as pointer to its data
+### Maybe it is not the best choice, but serves as a playground.
 ### When the continuation is called, current continuation context is saved.
 ### target continuation context is restored then long jmp is performed to
 ### target continuation instruction pointer.
@@ -83,20 +85,20 @@
 			.ALIGN	32
 			.LCOMM	\name, cnt_size
 	.ENDM
-	.BSS
-	.LCOMM	temp_context, 32+4
 
-	.DATA
+
+
+	
 ### ###########################################################################
 ### Define the continuation 
+
 	.MACRO Define_continuation name
-		
-		.data
+		.DATA
 	\name:
 	## That's needed becaue of bug in GAS macros
 
 	## Neet to play a little bit with stack to not destroy registers
-	## and fetch the paremeter to %eax
+	## and fetch the paremeter to %ebp
 		
 		mov	(%esp), %ebp
 	
@@ -113,7 +115,8 @@
 
 		## We are inited 
 		movl	$1, cnt_init(%ebp)
-		## Save our context by popping out saved %eax
+
+		## Save our context by popping out saved %ebp
 		Vm_Save_context_reg	%ebp, cnt_context
 		push	%ebp
 		
@@ -146,23 +149,17 @@
 	
 ### ###########################################################################
 ### Define the continuation call
-## 	.MACRO Call_with_cc \data_ptr
-## 		.data
-## 		popl	
-## 		Vm_Save_context temp_context
-
-
-## 		### Set the ip to the next instruction 
-## 		movl	$9f,	cnt_IP(%edi)
-## 		jmp	\callee_code
-## 	9:	
-## 	.ENDM
+ 	.MACRO Call_with_cc cont, data
+		Vm_Save_context_reg 	%ebp, cnt_context
+ 		movl	$9f,	cnt_IP(%ebp)
+ 		push	$\data
+		jmp	\cont
+	9:	
+ 	.ENDM
 
 ### ###########################################################################
 ### Return from continuatiom
 	.MACRO Exit_continuation
-		.data
-
 		Vm_Save_context_reg 	%ebp, cnt_context
 
 		### Set the ip to the next instruction 
