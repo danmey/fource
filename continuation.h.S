@@ -170,7 +170,7 @@
 
 ### ###########################################################################
 ### Define the direct continuation call
-	.MACRO Enter_continuation name_c, cont, data
+	.MACRO Continuation_entry name_c, cont, data
 	.BSS
 	Define_context \name\()_context
 	.DATA

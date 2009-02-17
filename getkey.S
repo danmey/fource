@@ -4,8 +4,6 @@
 
 
 
-	.GLOBL 	Vm_Get_key
-	.GLOBL 	Vm_Get_word
 	.GLOBL	Vm_interpret
 
 
@@ -16,29 +14,10 @@
 		Define_context Vm_context
 	.DATA
 
-Input_stream:	.LONG	0
-fmt_str:	.ASCIZ "%s\n"
+	Input_stream:	.LONG	0
+	fmt_str:	.ASCIZ "%s "
 
 
-
-	.MACRO Next_char end_of_stream
-		xorl	%ecx,		%ecx
-		movl	Input_stream,	%edx
-		incl	Input_stream
-		movb	(%edx),		%cl
-		orl	%ecx,		%ecx
-		jz	\end_of_stream
-	.ENDM
-
-
-
-	
-	.MACRO Store_char	reg
-		movb	%cl,	(\reg)
-		incl	\reg
-	.ENDM
-
-	
 
 	
 	.MACRO	Is_white breg, white_label
@@ -54,118 +33,64 @@ fmt_str:	.ASCIZ "%s\n"
 	.ENDM
 
 	
-	## TODO: Put logic into macro
-## Define_continuation_context Get_key_context, Enviroment_code
-	
-## Continuation_def Get_key, Get_key_context
-## Continuation_code Get_key
-## 1:	
-## 	Next_char 	2f
-## 	jmp		1b
-## 2:
-## 	Exit_continuation
-
-
 
 	
-## Define_continuation_context Get_word_context, Enviroment_code
-## Continuation_def Get_word, Get_word_context
-## Continuation_code Get_word
-## loop:	
-## 	mov	$Token_buffer,	%edi
-## 	xor	%eax,	%eax
-## 	mov	$32,	%ecx
-## 	rep	stosb
-## whites:
-## 	## TODO: As above
-## 1:	
-## 	Next_char 	2f	
-## 	jmp		3f
-## 2:
-## 	Exit_continuation
-## 3:	
-## 	Is_white 	%cl,whites
-## 	movl		$Token_buffer,	%edi
-## 	Store_char	%edi
-## char_loop:	
-## 	## TODO: As above
-## 1:	
-## 	Next_char 	2f
-## 	jmp		3f
-## 2:
-## 	Exit_continuation
-## 3:	
-## 	Store_char	%edi
-## 	Is_white 	%cl,end_of_word
-## 	jmp char_loop
-## end_of_word:
-## 	call	print_word
-## 	jmp	loop
-## 	ret
-## print_word:	
-## 	pushl	$Token_buffer
-## 	pushl	$fmt_str
-## 	call	printf
-## 	add	$8,%esp
-## 	ret
-## 2:
-## 	call	print_word
-## 	Exit_continuation
-## 	ret
-
-##  Let's play a little bit with continuations
-##  a mutually recursive continuations ... 
+Define_continuation_context 	Get_word_data
 	
-Define_continuation_context Get_key_data2
-Define_continuation Get_key2
-	xor	%eax,	%eax
-1:
-	push	%eax
-	pushl	%eax
-	pushl	$msg2
-	call	printf 		# We will clean the stack after Call_with_cc
-	add	$8, %esp
-	pop	%eax
-	inc	%eax
-	Call_with_cc Get_key, Get_key_data
-	jmp 1b
+Define_continuation 		Get_word
+	mov	Input_stream, 	%esi
 
-msg:	.asciz "Continuation1: %d!\n"
-msg2:	.asciz "Continuation2: %d!\n"
+loop:
+	mov	$Token_buffer,	%edi
+	xor	%eax,%eax
+	push	%edi
+	mov	$32,	%ecx
+	rep	stosb
+	pop	%edi
+white:	
+	lodsb
+	or	%al,	%al
+	jnz	not_end
+	Exit_continuation
+	mov	Input_stream, 	%esi
+	jmp	loop
+not_end:	
+	Is_white %al,	white
+	dec	%esi
+
+not_white:
+	lodsb
+	Is_white %al,	word_end
+	or	%al,	%al
+	jz	word_end2
+	stosb
+	jmp	not_white
 	
-Define_continuation_context Get_key_data
-Define_continuation Get_key
-	xor	%ecx,	%ecx
-1:
-	pushl	%ecx
-	pushl	%ecx
-	pushl	$msg
+word_end:
+	dec 	%esi
+	call	print_word
+	jmp	loop
+word_end2:
+	dec 	%esi
+	call	print_word
+	Exit_continuation
+	mov	Input_stream, 	%esi
+	jmp	loop
+
+print_word:
+	push	$Token_buffer
+	push	$fmt_str
 	call	printf
-	add	$8, %esp
-	Call_with_cc Get_key2, Get_key_data2
-	pop	%ecx
-	inc	%ecx
-#	Exit_continuation	
-	jmp 1b
+	add	$8,%esp
+	ret
 	
-
-	Enter_continuation Vm_interpret, Get_key, Get_key_data
+Vm_interpret:
+	push	%ebp
+	mov	%esp,%ebp
+	mov	8(%ebp),%eax
+	mov	%eax,Input_stream
+	call	Vm_parse
+	pop	%ebp
+	ret
 	
-## 	Vm_Save_context Vm_context
-## 	mov	%esp,	%ebp
-## 	mov	4(%ebp),	%eax
-## 	mov	%eax,		Input_stream
-
-## 	movl	$ll,	(Enviroment_data+cnt_exit)
-## 	push	$Enviroment_data
-## 	jmp	Enviroment
-	
-## ll:
-##  	pushl	$msg
-##  	call	printf
-## 	Vm_Restore_context Vm_context
-## 	ret
-## Vm_intepret:
-	
-
-
+Continuation_entry		Vm_parse, Get_word, Get_word_data

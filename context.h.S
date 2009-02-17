@@ -40,26 +40,6 @@
 		movl	(32+\ofs)(\reg),%esp
 	.ENDM
 
-## 		# TODO: Implement rest of the registers
-## 	.MACRO	Vm_set_context_reg context, reg, val
-## 		.IF	\reg == %eax
-## 			mov	\val, (\context+28)
-## 		.ENDIF
-## 	.ENDM
-
-## 	.MACRO	Vm_set_context_reg context, reg, val
-## 	.IF	\reg == %eax
-## 		mov	\val, (\context+28)
-## 	.ENDIF
-## 	.ENDM
-
-	
-## 	.MACRO Vm_Save_context_eax_top reg, ofs
-## 		movl	%esp,	(32+\ofs)(%eax)
-## 		lea	(32+\ofs)(%eax),	%esp
-## 		pushal
-## 		movl	(32+\ofs)(%eax),	%esp
-## 	.ENDM
 
 
 
