@@ -113,24 +113,39 @@ fmt_str:	.ASCIZ "%s\n"
 ## 	Exit_continuation
 ## 	ret
 
+##  Let's play a little bit with continuations
+##  a mutually recursive continuations ... 
+	
 Define_continuation_context Get_key_data2
 Define_continuation Get_key2
+	xor	%eax,	%eax
 1:
+	push	%eax
+	pushl	%eax
 	pushl	$msg2
-	call	printf
+	call	printf 		# We will clean the stack after Call_with_cc
+	add	$8, %esp
+	pop	%eax
+	inc	%eax
 	Call_with_cc Get_key, Get_key_data
 	jmp 1b
 
-msg:	.asciz "Hello world!\n"
-msg2:	.asciz "Hello world!\n"
+msg:	.asciz "Continuation1: %d!\n"
+msg2:	.asciz "Continuation2: %d!\n"
 	
 Define_continuation_context Get_key_data
 Define_continuation Get_key
+	xor	%ecx,	%ecx
 1:
+	pushl	%ecx
+	pushl	%ecx
 	pushl	$msg
 	call	printf
+	add	$8, %esp
 	Call_with_cc Get_key2, Get_key_data2
-	Exit_continuation
+	pop	%ecx
+	inc	%ecx
+#	Exit_continuation	
 	jmp 1b
 	
 

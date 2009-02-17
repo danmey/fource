@@ -124,12 +124,10 @@
 		pop 	%ebp
 		## Jump to the code where we suspended 
 		Vm_Restore_context_reg %ebp, cnt_context
-		push	%ebp
 		pushl	cnt_IP(%ebp)
 		ret
 	8:
 		### This is first invocation 
-		pop 	%ebp
 		Vm_Restore_context_reg %ebp, cnt_context
 	
 
