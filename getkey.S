@@ -115,27 +115,32 @@ fmt_str:	.ASCIZ "%s\n"
 
 
 msg:	.asciz "Hello world!\n"
-Define_continuation_context Enviroment_data
-Define_continuation Enviroment
-1:	
+Define_continuation_context Get_key_data
+Define_continuation Get_key
+1:
+	pushl	$msg
+	call	printf
 	Exit_continuation
-	jmp	1b
-
-Vm_interpret:	
-	Vm_Save_context Vm_context
-	mov	%esp,	%ebp
-	mov	4(%ebp),	%eax
-	mov	%eax,		Input_stream
-
-	movl	$ll,	(Enviroment_data+cnt_exit)
-	push	$Enviroment_data
-	jmp	Enviroment
+	jmp 1b
 	
-ll:
- 	pushl	$msg
- 	call	printf
-	Vm_Restore_context Vm_context
-	ret
 
+	Enter_continuation Vm_interpret, Get_key, Get_key_data
+	
+## 	Vm_Save_context Vm_context
+## 	mov	%esp,	%ebp
+## 	mov	4(%ebp),	%eax
+## 	mov	%eax,		Input_stream
+
+## 	movl	$ll,	(Enviroment_data+cnt_exit)
+## 	push	$Enviroment_data
+## 	jmp	Enviroment
+	
+## ll:
+##  	pushl	$msg
+##  	call	printf
+## 	Vm_Restore_context Vm_context
+## 	ret
+## Vm_intepret:
+	
 
 

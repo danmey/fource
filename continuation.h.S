@@ -135,7 +135,7 @@
 		### Ugly. Clean up previous macros
 	.IFDEF first
 		.PURGEM	Call_with_cc
-		.PURGEM Call_continuation
+		.PURGEM Enter_continuation
 		.PURGEM Exit_continuation
 	.ENDIF
 
@@ -146,17 +146,17 @@
 	
 ### ###########################################################################
 ### Define the continuation call
-	.MACRO Call_with_cc  
-		.data
-		popl	
-		Vm_Save_context temp_context
+## 	.MACRO Call_with_cc \data_ptr
+## 		.data
+## 		popl	
+## 		Vm_Save_context temp_context
 
 
-		### Set the ip to the next instruction 
-		movl	$9f,	cnt_IP(%edi)
-		jmp	\callee_code
-	9:	
-	.ENDM
+## 		### Set the ip to the next instruction 
+## 		movl	$9f,	cnt_IP(%edi)
+## 		jmp	\callee_code
+## 	9:	
+## 	.ENDM
 
 ### ###########################################################################
 ### Return from continuatiom
@@ -173,16 +173,20 @@
 	.ENDM
 
 
-
 ### ###########################################################################
 ### Define the direct continuation call
-	.MACRO Call_continuation callee
-	8:	
-		Call_with_cc \callee
-	## 
-	##	movl	\continuation, 		%edi
-	##	movl	$8b,			cnt_IP(%edi) 
-
+	.MACRO Enter_continuation name_c, cont, data
+	.BSS
+	Define_context \name\()_context
+	.DATA
+	\name_c:
+		Vm_Save_context \name\()_context
+ 		movl	$9f,	(\data+cnt_exit)
+ 		push	$\data
+		jmp	\cont
+9:
+	Vm_Restore_context \name\()_context
+	ret	
 	.ENDM
 	### Ugly.
 	.SET first,0
