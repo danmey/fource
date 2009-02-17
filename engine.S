@@ -61,12 +61,6 @@ var_\label:
 
 
 
-	# TODO: Implement rest of the registers
-	.MACRO	Vm_set_context_reg context, reg, val
-		.IF	\reg == %eax
-			mov	\val, (\context+28)
-		.ENDIF
-	.ENDM
 
 
 	

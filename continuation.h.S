@@ -69,8 +69,8 @@
 		field 	cnt_stack, 	(STACKDEPTH<<2)	# Parameter stack 
 		field 	cnt_ret_stack, 	(STACKDEPTH<<2)	# Return stack 
 		field 	cnt_context,	32+4		# Registers
+		field 	cnt_exit,	4		# Doubled!
 		field 	cnt_IP,		4 		# Program Pointer
-		field 	cnt_exit_cnt,	4		# Continuation at exit
 		field 	cnt_init,	4		# Init flag
 		field 	cnt_size,	0		# Size of tje strucuture
 	End_struct
@@ -78,45 +78,56 @@
 	
 
 
-### ###########################################################################
-### Define the continuation 
-	.MACRO Define_continuation name, exit_continuation
+	.MACRO Define_continuation_context name
 		.bss
-
-		### we should really keep the pointers if
-		### we dont need to alloc mem for every continuation
-		### please see exceptions
 			.ALIGN	32
 			.LCOMM	\name, cnt_size
+	.ENDM
+	.BSS
+	.LCOMM	temp_context, 32+4
+
+	.DATA
+### ###########################################################################
+### Define the continuation 
+	.MACRO Define_continuation name
+		
 		.data
+	\name:
+	## That's needed becaue of bug in GAS macros
 
-	\name\()_code:
-
-		### Execute only ones
-		cmp	$0, (\name + cnt_init) 
+	## Neet to play a little bit with stack to not destroy registers
+	## and fetch the paremeter to %eax
+		
+		mov	(%esp), %ebp
+	
+		## Execute only ones
+		cmp	$0, 		cnt_init(%ebp)
 		jnz	9f
 
-		### Initialize stack pointers
-		lea	(\name + cnt_stack +     (STACKDEPTH<<2)-4),	%esi
-		lea	(\name + cnt_ret_stack	+(STACKDEPTH<<2)-4),	%esp
+		## Initialize stack pointers
+		lea	(cnt_ret_stack	+(STACKDEPTH<<2)-4)(%ebp),%esp
+		lea	(cnt_stack +     (STACKDEPTH<<2)-4)(%ebp),%esi
 
-		### Save our context 
-		Vm_Save_context (\name + cnt_context)
+		## Trick, in first invocation it points to 8f 
+		movl	$8f,	cnt_IP(%ebp)
 
-		### Trick, in first invocation it points to 8f 
-		movl	$8f,	(\name + cnt_IP)
-
-		### We are inited 
-		movl	$1, (\name + cnt_init)
-	9:	
-		Vm_Restore_context (\name + cnt_context)
-
-		### Jump to the code where we suspended 
-		pushl	(\name + cnt_IP)
+		## We are inited 
+		movl	$1, cnt_init(%ebp)
+		## Save our context by popping out saved %eax
+		Vm_Save_context_reg	%ebp, cnt_context
+		push	%ebp
+		
+	9:
+		pop 	%ebp
+		## Jump to the code where we suspended 
+		Vm_Restore_context_reg %ebp, cnt_context
+		push	%ebp
+		pushl	cnt_IP(%ebp)
 		ret
 	8:
 		### This is first invocation 
-		Vm_Restore_context (\name + cnt_context)
+		pop 	%ebp
+		Vm_Restore_context_reg %ebp, cnt_context
 	
 
 	
@@ -132,17 +143,17 @@
 
 
 
-
+	
 ### ###########################################################################
 ### Define the continuation call
-	.MACRO Call_with_cc callee_code 
+	.MACRO Call_with_cc  
 		.data
-	
-		### Save the context 
-		Vm_Save_context (\name + cnt_context)
+		popl	
+		Vm_Save_context temp_context
+
 
 		### Set the ip to the next instruction 
-		movl	$9f,	(\name + cnt_IP)
+		movl	$9f,	cnt_IP(%edi)
 		jmp	\callee_code
 	9:	
 	.ENDM
@@ -150,7 +161,15 @@
 ### ###########################################################################
 ### Return from continuatiom
 	.MACRO Exit_continuation
-		Call_with_cc \exit_continuation
+		.data
+
+		Vm_Save_context_reg 	%ebp, cnt_context
+
+		### Set the ip to the next instruction 
+		movl	$9f,	cnt_IP(%ebp)
+		pushl	cnt_exit(%ebp)
+		ret
+	9:	
 	.ENDM
 
 
@@ -160,7 +179,10 @@
 	.MACRO Call_continuation callee
 	8:	
 		Call_with_cc \callee
-		movl	$8b, (\name+cnt_IP)
+	## 
+	##	movl	\continuation, 		%edi
+	##	movl	$8b,			cnt_IP(%edi) 
+
 	.ENDM
 	### Ugly.
 	.SET first,0
