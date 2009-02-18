@@ -17,7 +17,7 @@
 	Input_stream:	.LONG	0
 	fmt_str:	.ASCIZ "%s "
 
-
+	
 
 	
 	.MACRO	Is_white breg, white_label
@@ -38,10 +38,10 @@
 Define_continuation_context 	Get_word_data
 	
 Define_continuation 		Get_word
-	mov	Input_stream, 	%esi
+	movl	Input_stream, 	%esi
 
 loop:
-	mov	$Token_buffer,	%edi
+	movl	$Token_buffer,	%edi
 	xor	%eax,%eax
 	push	%edi
 	mov	$32,	%ecx
@@ -76,7 +76,8 @@ word_end2:
 	Exit_continuation
 	mov	Input_stream, 	%esi
 	jmp	loop
-
+word_end_fail:
+	
 print_word:
 	push	$Token_buffer
 	push	$fmt_str

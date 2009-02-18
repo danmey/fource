@@ -28,9 +28,12 @@
 
 
 # Stupid value but... thats for prototype
+
 #define EXCEPTION_MARKER 	0x0		
 #define EXCEPTION_STACKFRAME	(4+4+32)
-	
+
+	.DATA
+	.ALIGN 4
 	
 	.MACRO 	Try exception_id catch_label 
 		pushl	$\catch_label	# store our return address on stack

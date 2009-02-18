@@ -38,10 +38,9 @@
 
 
 #include "context.h.S"
-
+#include "const.S"
 
 	
- 	.EQU STACKDEPTH, 256
 
 
 	
@@ -49,17 +48,17 @@
 ### ############################################################################
 ### Let's declare some helper macros
 	
-	.MACRO Struct
-		.struct 0
-	.ENDM
+	## .MACRO Struct
+	## 	.struct 0
+	## .ENDM
 	
-	.MACRO Field label, len
-		\label\():	.struct \label+\len
-	.ENDM
+	## .MACRO Field label, len
+	## 	\label\():	.struct \label+\len
+	## .ENDM
 
-	.MACRO End_struct
-		.data
-	.ENDM
+	## .MACRO End_struct
+	## 	.data
+	## .ENDM
 
 
 
@@ -67,15 +66,15 @@
 ### ############################################################################
 ### Our continuation context data structure
 
-	Struct
-		field 	cnt_stack, 	(STACKDEPTH<<2)	# Parameter stack 
-		field 	cnt_ret_stack, 	(STACKDEPTH<<2)	# Return stack 
-		field 	cnt_context,	32+4		# Registers
-		field 	cnt_exit,	4		# Doubled!
-		field 	cnt_IP,		4 		# Program Pointer
-		field 	cnt_init,	4		# Init flag
-		field 	cnt_size,	0		# Size of tje strucuture
-	End_struct
+	## Struct
+	## 	field 	cnt_stack, 	(STACKDEPTH<<2)	# Parameter stack 
+	## 	field 	cnt_ret_stack, 	(STACKDEPTH<<2)	# Return stack 
+	## 	field 	cnt_context,	32+4		# Registers
+	## 	field 	cnt_exit,	4		# Doubled!
+	## 	field 	cnt_IP,		4 		# Program Pointer
+	## 	field 	cnt_init,	4		# Init flag
+	## 	field 	cnt_size,	0		# Size of tje strucuture
+	## End_struct
 	
 	
 
@@ -83,7 +82,7 @@
 	.MACRO Define_continuation_context name
 		.bss
 			.ALIGN	32
-			.LCOMM	\name, cnt_size
+			.LCOMM	\name, CNT_SIZE
 	.ENDM
 
 
@@ -103,44 +102,35 @@
 		mov	(%esp), %ebp
 	
 		## Execute only ones
-		cmp	$0, 		cnt_init(%ebp)
+		cmp	$0, 		CNT_INIT(%ebp)
 		jnz	9f
 
 		## Initialize stack pointers
-		lea	(cnt_ret_stack	+(STACKDEPTH<<2)-4)(%ebp),%esp
-		lea	(cnt_stack +     (STACKDEPTH<<2)-4)(%ebp),%esi
+		lea	(CNT_RET_STACK	+(STACKDEPTH<<2)-4)(%ebp),%esp
+		lea	(CNT_STACK +     (STACKDEPTH<<2)-4)(%ebp),%esi
 
 		## Trick, in first invocation it points to 8f 
-		movl	$8f,	cnt_IP(%ebp)
+		movl	$8f,	CNT_IP(%ebp)
 
 		## We are inited 
-		movl	$1, cnt_init(%ebp)
+		movl	$1, CNT_INIT(%ebp)
 
 		## Save our context by popping out saved %ebp
-		Vm_Save_context_reg	%ebp, cnt_context
+		Vm_Save_context_reg	%ebp, CNT_CONTEXT
 		push	%ebp
 		
 	9:
 		pop 	%ebp
 		## Jump to the code where we suspended 
-		Vm_Restore_context_reg %ebp, cnt_context
-		pushl	cnt_IP(%ebp)
+		Vm_Restore_context_reg %ebp, CNT_CONTEXT
+		pushl	CNT_IP(%ebp)
 		ret
 	8:
 		### This is first invocation 
-		Vm_Restore_context_reg %ebp, cnt_context
+		Vm_Restore_context_reg %ebp, CNT_CONTEXT
 	
 
-	
-
-		### Ugly. Clean up previous macros
-	.IFDEF first
-		.PURGEM	Call_with_cc
-		.PURGEM Enter_continuation
-		.PURGEM Exit_continuation
-	.ENDIF
-
-	
+	.ENDM
 
 
 
@@ -148,8 +138,8 @@
 ### ###########################################################################
 ### Define the continuation call
  	.MACRO Call_with_cc cont, data
-		Vm_Save_context_reg 	%ebp, cnt_context
- 		movl	$9f,	cnt_IP(%ebp)
+		Vm_Save_context_reg 	%ebp, CNT_CONTEXT
+ 		movl	$9f,	CNT_IP(%ebp)
  		push	$\data
 		jmp	\cont
 	9:	
@@ -158,11 +148,11 @@
 ### ###########################################################################
 ### Return from continuatiom
 	.MACRO Exit_continuation
-		Vm_Save_context_reg 	%ebp, cnt_context
+		Vm_Save_context_reg 	%ebp, CNT_CONTEXT
 
 		### Set the ip to the next instruction 
-		movl	$9f,	cnt_IP(%ebp)
-		pushl	cnt_exit(%ebp)
+		movl	$9f,	CNT_IP(%ebp)
+		pushl	CNT_EXIT(%ebp)
 		ret
 	9:	
 	.ENDM
@@ -170,21 +160,18 @@
 
 ### ###########################################################################
 ### Define the direct continuation call
-	.MACRO Continuation_entry name_c, cont, data
+	.MACRO Continuation_entry name, cont, data
 	.BSS
 	Define_context \name\()_context
 	.DATA
-	\name_c:
+	\name:
 		Vm_Save_context \name\()_context
- 		movl	$9f,	(\data+cnt_exit)
+ 		movl	$9f,	(\data+CNT_EXIT)
  		push	$\data
 		jmp	\cont
 9:
 	Vm_Restore_context \name\()_context
 	ret	
-	.ENDM
-	### Ugly.
-	.SET first,0
 	.ENDM
 
 	

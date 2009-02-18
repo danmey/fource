@@ -50,8 +50,8 @@
 		(_index) = (VM_CHARACTER_INDEX_MASK&(a)>>16); \
 	} \
 	if( VM_STATE_EXCEPTION & (a) ) 
-
-/*
+	
+/*						
  *	Exceptions
  */
 	
@@ -65,5 +65,24 @@
 #define END_OF_STREAM_EXCEPTION		1
 /* Word is not found */
 #define WORD_NOT_FOUND_EXCEPTION	2
-	
+
+#define STACKDEPTH 256		
+
+#define CNT_CONTEXT 0
+#define CNT_DI 	 0
+#define CNT_SI 	 4
+#define CNT_BP 	 8
+#define CNT_SP 	12
+#define CNT_BX 	16
+#define CNT_DX 	20
+#define CNT_CX 	24
+#define CNT_AX 	28
+#define CNT_IP	36
+#define CNT_OLD_SP	40
+#define CNT_STACK     ((CNT_OLD_SP)+4)
+#define CNT_RET_STACK ((CNT_STACK)    +((STACKDEPTH)<<2))
+#define CNT_EXIT      ((CNT_RET_STACK)+((STACKDEPTH)<<2))
+#define CNT_INIT      ((CNT_EXIT)+4)
+#define CNT_SIZE      ((CNT_INIT)+4)
+
 
