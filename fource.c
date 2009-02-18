@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <assert.h>
-#include "const.S"
+#include "vm.h"
 
 
 char* Vm_interpret(const char* buffer);
