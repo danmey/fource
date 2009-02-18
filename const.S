@@ -77,8 +77,9 @@
 #define CNT_DX 	20
 #define CNT_CX 	24
 #define CNT_AX 	28
+#define CNT_OLD_SP  32
 #define CNT_IP	36
-#define CNT_OLD_SP	40
+#define CNT_REG_SIZE	40
 #define CNT_STACK     ((CNT_OLD_SP)+4)
 #define CNT_RET_STACK ((CNT_STACK)    +((STACKDEPTH)<<2))
 #define CNT_EXIT      ((CNT_RET_STACK)+((STACKDEPTH)<<2))

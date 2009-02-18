@@ -29,14 +29,17 @@
 
 # Stupid value but... thats for prototype
 
-#define EXCEPTION_MARKER 	0x0		
+#define EXCEPTION_MARKER 	Vm_Dispatch_exception
 #define EXCEPTION_STACKFRAME	(4+4+32)
 
+	.BSS
+	Define_context Vm_Exception_context
+	
 	.DATA
 	.ALIGN 4
 	
 	.MACRO 	Try exception_id catch_label 
-		pushl	$\catch_label	# store our return address on stack
+		pushl	\catch_label	# store our return address on stack
 		pushal			# store our context (EASY!)
 		pushl	\exception_id
 		pushl	$EXCEPTION_MARKER
