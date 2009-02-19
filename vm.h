@@ -25,6 +25,6 @@ typedef struct
 
 
 typedef int (*Vm_Exception_handler_t)(Vm_Exception_t*);
-extern Vm_Exception_handler_t Vm_Exception_handler;
+//extern Vm_Exception_handler_t Vm_Exception_handler;
 
 #endif

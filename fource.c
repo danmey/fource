@@ -1,10 +1,12 @@
+#include <dlfcn.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 #include "vm.h"
 
 
-char* Vm_interpret(const char* buffer);
-void  Vm_reset    (void);
+// char* Vm_interpret(const char* buffer);
+//void  Vm_reset    (void);
 
 
 
@@ -63,13 +65,25 @@ int kernel_exception_handler(Vm_Exception_t* ex)
       }
 }
 
+Vm_Exception_handler_t* Vm_Exception_handler;
+void (*Vm_interpret)(char *);
 int main()
 {
+  void* lib = dlopen("./libfource.so",RTLD_LAZY);
+  if ( lib == NULL )
+    {
+      char* dlError = dlerror();
+      printf("error loading dll: %s\n", dlError);
+      exit(1);
+    }
+  Vm_Exception_handler = dlsym(lib, "Vm_Exception_handler");
+  Vm_interpret = dlsym(lib, "Vm_interpret");
+  printf("%x\n", Vm_interpret);
     char line[257];
-    Vm_Exception_handler = &kernel_exception_handler;
+    *Vm_Exception_handler = &kernel_exception_handler;
     while( EOF != just_one_line(stdin, 256, line) )
 	{
-	    char* word = Vm_interpret(line);
+	  Vm_interpret(line);
 	    //      puts("ala");
 	    //      if ( word != NULL )
 	    //	puts(word);
