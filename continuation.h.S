@@ -190,7 +190,7 @@
 
 
 	.MACRO Set_continuation_slot value, slot, data
-		mov	value, (data+slot)
+		movl	\value, (\data+\slot)
 	.ENDM
 	
 

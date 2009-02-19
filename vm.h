@@ -7,7 +7,7 @@
 
 typedef struct 
 {
-  unsigned int reg[CNT_REG_SIZE];
+  unsigned int reg[CNT_REG_SIZE/4];
   void* stack;
   void* ret_stack;
 } Vm_Context_t;
@@ -24,7 +24,7 @@ typedef struct
 
 
 
-typedef int (*Vm_Exception_handler)(Vm_Exception_t*);
-
+typedef int (*Vm_Exception_handler_t)(Vm_Exception_t*);
+extern Vm_Exception_handler_t Vm_Exception_handler;
 
 #endif

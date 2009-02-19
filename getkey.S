@@ -76,6 +76,7 @@ word_end2:
 	jmp	loop
 
 word_end_fail:
+	Set_continuation_slot $WORD_TO_LONG_EXCEPTION, CNT_AX, Exception_data
 	Call_with_cc Exception, Exception_data, Get_word
 	Exit_continuation_ret
 	jmp	loop
@@ -85,8 +86,12 @@ print_word:
 	call	printf
 	add	$8,%esp
 	ret
-	
+	.BSS
+	Define_context Enviroment_context
+	.GLOBL Enviroment_context
+	.DATA
 Vm_interpret:
+	Vm_Save_context Enviroment_context
 	push	%ebp
 	mov	%esp,%ebp
 	mov	8(%ebp),%eax

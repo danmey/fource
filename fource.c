@@ -50,10 +50,23 @@ int just_one_line(FILE* f, int max_buffer, char* o_buffer)
     return nread;
 }
 
+// TODO: Add dump of registers and IP
+int kernel_exception_handler(Vm_Exception_t* ex)
+{
+  switch(ex->id)
+    {
+    case WORD_TO_LONG_EXCEPTION: 
+      // TODO: Put exception description in a table
+      // TODO: Debug Fear macro as it crashes :)
+      printf("***Exception: Word to long. Truncating..\n");
+      break;
+      }
+}
 
 int main()
 {
     char line[257];
+    Vm_Exception_handler = &kernel_exception_handler;
     while( EOF != just_one_line(stdin, 256, line) )
 	{
 	    char* word = Vm_interpret(line);

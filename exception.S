@@ -34,7 +34,7 @@
 		field 	ext_size, 0
 	End_struct
 
-	
+	.BSS
 	.LCOMM Vm_Exception_context, ext_size
 
 	.DATA
@@ -56,20 +56,24 @@ exception_loop:
 	leal	CNT_CONTEXT(%ebx), 	%esi
 	movl	$Vm_Exception_context, 	%edi
 	movl	$CNT_REG_SIZE,		%ecx
-	rep 	stosb
+	rep 	movsb
 	## Now the stack pointers
 	leal	CNT_STACK(%ebx),	%eax
 	stosl
 	leal	CNT_RET_STACK(%ebx),	%eax
 	stosl
 	popl	%eax
+	mov	$ 3, %eax
 	stosl
 	## Call our handler routine
+### 	Vm_Save_context_reg 	%ebp, CNT_CONTEXT
+### 	Vm_Restore_context Enviroment_context
 	pushl	$ Vm_Exception_context
 	pushl	$ 1f	
 	pushl	Vm_Exception_handler
 	ret
 1:
+### 	Vm_Restore_context_reg 	%ebp, CNT_CONTEXT
 	addl	$4,	%esp	# Fix the stack after call
 	Exit_continuation Get_word_data
 	jmp	exception_loop
