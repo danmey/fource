@@ -1,6 +1,6 @@
 #include "continuation.h.S"
 #include "context.h.S"
-
+#include "exception.h.S"
 
 
 
@@ -18,7 +18,6 @@
 	fmt_str:	.ASCIZ "%s "
 
 	
-
 	
 	.MACRO	Is_white breg, white_label
 		cmpb	$10,	\breg		# CR ?
@@ -33,10 +32,8 @@
 	.ENDM
 
 	
-
-	
+.GLOBL	Get_word_data
 Define_continuation_context 	Get_word_data
-	
 Define_continuation 		Get_word
 	movl	Input_stream, 	%esi
 
@@ -51,7 +48,7 @@ white:
 	lodsb
 	or	%al,	%al
 	jnz	not_end
-	Exit_continuation
+	Exit_continuation_ret
 	mov	Input_stream, 	%esi
 	jmp	loop
 not_end:	
@@ -63,6 +60,8 @@ not_white:
 	Is_white %al,	word_end
 	or	%al,	%al
 	jz	word_end2
+	cmp	$(Token_buffer+31),%edi
+	jae	word_end_fail
 	stosb
 	jmp	not_white
 	
@@ -73,11 +72,14 @@ word_end:
 word_end2:
 	dec 	%esi
 	call	print_word
-	Exit_continuation
+	Exit_continuation_ret
 	mov	Input_stream, 	%esi
 	jmp	loop
+
 word_end_fail:
-	
+	Call_with_cc Exception, Exception_data, Get_word
+	Exit_continuation_ret
+	jmp	loop
 print_word:
 	push	$Token_buffer
 	push	$fmt_str
@@ -94,4 +96,4 @@ Vm_interpret:
 	pop	%ebp
 	ret
 	
-Continuation_entry		Vm_parse, Get_word, Get_word_data
+Continuation_entry Vm_parse, Get_word, Get_word_data

@@ -133,25 +133,38 @@
 	.ENDM
 
 
-
 	
 ### ###########################################################################
 ### Define the continuation call
- 	.MACRO Call_with_cc cont, data
+ 	.MACRO Call_with_cc cont, data, this_cont
 		Vm_Save_context_reg 	%ebp, CNT_CONTEXT
  		movl	$9f,	CNT_IP(%ebp)
- 		push	$\data
-		jmp	\cont
+ 		pushl	$\this_cont
+		popl	(\data+CNT_EXIT)
+ 		pushl	$\data
+ 		pushl	$\cont
+		ret
 	9:	
  	.ENDM
 
 ### ###########################################################################
 ### Return from continuatiom
-	.MACRO Exit_continuation
+	.MACRO Exit_continuation_ret data
 		Vm_Save_context_reg 	%ebp, CNT_CONTEXT
 
 		### Set the ip to the next instruction 
 		movl	$9f,	CNT_IP(%ebp)
+		pushl	CNT_EXIT(%ebp)
+		ret
+	9:	
+	.ENDM
+
+	.MACRO Exit_continuation data
+		Vm_Save_context_reg 	%ebp, CNT_CONTEXT
+
+		### Set the ip to the next instruction 
+		movl	$9f,	CNT_IP(%ebp)
+		pushl	$ \data
 		pushl	CNT_EXIT(%ebp)
 		ret
 	9:	
@@ -174,6 +187,11 @@
 	ret	
 	.ENDM
 
+
+
+	.MACRO Set_continuation_slot value, slot, data
+		mov	value, (data+slot)
+	.ENDM
 	
 
 	

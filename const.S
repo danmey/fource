@@ -65,6 +65,7 @@
 #define END_OF_STREAM_EXCEPTION		1
 /* Word is not found */
 #define WORD_NOT_FOUND_EXCEPTION	2
+#define WORD_TO_LONG_EXCEPTION          3
 
 #define STACKDEPTH 256		
 
