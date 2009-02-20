@@ -9,6 +9,7 @@
 
 	
 	.MACRO Define_context context
+		.DATA 2
 		.ALIGN	32
 		.LCOMM 	\context, 32+4
 	.ENDM

@@ -195,7 +195,7 @@ Fmt_dec:	.asciz "%d"
 	Defvar last, "last", wstart_last
 
 
-	.BSS
+	.DATA 2
 	Define_context Enviroment_context
 	.GLOBL Enviroment_context
 	.DATA
@@ -227,7 +227,8 @@ Vm_interpret:
 	ret
 	
 Continuation_entry Vm_parse, Interpret, Interpret_data
-	
+
+
 	
 		
 ## Emit_sub_call:

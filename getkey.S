@@ -8,11 +8,12 @@
 
 
 	
-	.BSS
+	.DATA 1
+	.GLOBL
+_Image_start:	
+
 		.LCOMM Token_buffer, 32
 		Define_context Vm_context
-	.DATA
-
 	Input_stream:	.LONG	0
 	fmt_str:	.ASCIZ "%s "
 

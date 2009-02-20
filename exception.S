@@ -1,8 +1,8 @@
 #include "continuation.h.S"	
 
-	.BSS
-		.LCOMM Vm_Exception_handler,4
-
+	.DATA 2
+	.LCOMM Vm_Exception_handler,4
+	.DATA 1
 
 
 	
@@ -21,7 +21,7 @@
 
 	
 	.MACRO End_struct
-		.data
+		.DATA 1
 	.ENDM
 
 
@@ -34,13 +34,12 @@
 		field 	ext_size, 0
 	End_struct
 
-	.BSS
+	.DATA 2
 	.LCOMM Vm_Exception_context, ext_size
 
-	.DATA
 Msg_Exception_handler_not_def:
 	.asciz "*Error: Uncought Fource kernel exception!\n"
-
+	.DATA 1
 .GLOBL	Exception_data
 .GLOBL	Exception
 	
