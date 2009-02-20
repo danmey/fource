@@ -85,6 +85,8 @@
 #define CNT_RET_STACK ((CNT_STACK)    +((STACKDEPTH)<<2))
 #define CNT_EXIT      ((CNT_RET_STACK)+((STACKDEPTH)<<2))
 #define CNT_INIT      ((CNT_EXIT)+4)
-#define CNT_SIZE      ((CNT_INIT)+4)
+#define CNT_EXIT_DATA ((CNT_INIT)+4)
+#define CNT_CONTINUATION ((CNT_EXIT_DATA)+4)
+#define CNT_SIZE      ((CNT_CONTINUATION)+4)
 
 

@@ -30,12 +30,13 @@
 		jz \white_label	
 	.ENDM
 
+	.GLOBL Get_word
+	.GLOBL Token_buffer
+.GLOBL Input_stream
 	
-.GLOBL	Get_word_data
-Define_continuation_context 	Get_word_data
-Define_continuation 		Get_word
+ .GLOBL	Get_word_data
+	Define_continuation_with_context Get_word
 	movl	Input_stream, 	%esi
-
 loop:
 	movl	$Token_buffer,	%edi
 	xor	%eax,%eax
@@ -47,7 +48,7 @@ white:
 	lodsb
 	or	%al,	%al
 	jnz	not_end
-	Exit_continuation_ret
+	Exit_continuation 
 	mov	Input_stream, 	%esi
 	jmp	loop
 not_end:	
@@ -67,37 +68,25 @@ not_white:
 word_end:
 	dec 	%esi
 	call	print_word
+	Exit_continuation
 	jmp	loop
 word_end2:
 	dec 	%esi
 	call	print_word
-	Exit_continuation_ret
+	Exit_continuation
 	mov	Input_stream, 	%esi
 	jmp	loop
 
 word_end_fail:
 	Set_continuation_slot $WORD_TO_LONG_EXCEPTION, CNT_AX, Exception_data
-	Call_with_cc Exception, Exception_data, Get_word
+	Call_with_cc Exception, Exception_data
 	Exit_continuation_ret
+	ret
 	jmp	loop
 print_word:
-	push	$Token_buffer
-	push	$fmt_str
-	call	printf
-	add	$8,%esp
+	## push	$Token_buffer
+	## push	$fmt_str
+	## call	printf
+	## add	$8,%esp
 	ret
-	.BSS
-	Define_context Enviroment_context
-	.GLOBL Enviroment_context
-	.DATA
-Vm_interpret:
-	Vm_Save_context Enviroment_context
-	push	%ebp
-	mov	%esp,%ebp
-	mov	8(%ebp),%eax
-	mov	%eax,Input_stream
-	call	Vm_parse
-	pop	%ebp
-	ret
-	
-Continuation_entry Vm_parse, Get_word, Get_word_data
+

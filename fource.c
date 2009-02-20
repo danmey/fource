@@ -65,10 +65,11 @@ int kernel_exception_handler(Vm_Exception_t* ex)
       }
 }
 
-Vm_Exception_handler_t* Vm_Exception_handler;
-void (*Vm_interpret)(char *);
+extern Vm_Exception_handler_t Vm_Exception_handler;
+extern void Vm_interpret(char *);
 int main()
 {
+  /*
   void* lib = dlopen("./libfource.so",RTLD_LAZY);
   if ( lib == NULL )
     {
@@ -79,8 +80,10 @@ int main()
   Vm_Exception_handler = dlsym(lib, "Vm_Exception_handler");
   Vm_interpret = dlsym(lib, "Vm_interpret");
   printf("%x\n", Vm_interpret);
+  */
     char line[257];
-    *Vm_Exception_handler = &kernel_exception_handler;
+    //printf("%x\n", &Vm_Exception_handler);
+    Vm_Exception_handler = &kernel_exception_handler;
     while( EOF != just_one_line(stdin, 256, line) )
 	{
 	  Vm_interpret(line);

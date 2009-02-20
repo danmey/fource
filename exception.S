@@ -75,13 +75,13 @@ exception_loop:
 1:
 ### 	Vm_Restore_context_reg 	%ebp, CNT_CONTEXT
 	addl	$4,	%esp	# Fix the stack after call
-	Exit_continuation Get_word_data
+	Exit_continuation 
 	jmp	exception_loop
 exception_handler_empty:
 ### TODO: Redirect message to stderr rather then stdout
 	pushl	$ Msg_Exception_handler_not_def
 	call	printf
 	add	$4,	%esp
-	Exit_continuation Get_word_data	
+	Exit_continuation 
 	jmp	exception_loop
 	

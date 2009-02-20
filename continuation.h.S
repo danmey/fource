@@ -100,7 +100,10 @@
 	## and fetch the paremeter to %ebp
 		
 		mov	(%esp), %ebp
-	
+		xchg	4(%esp),%eax
+		movl	%eax,	CNT_EXIT_DATA(%ebp)
+		movl	$\name,	CNT_CONTINUATION(%ebp)
+		xchg	4(%esp),%eax
 		## Execute only ones
 		cmp	$0, 		CNT_INIT(%ebp)
 		jnz	9f
@@ -121,6 +124,7 @@
 		
 	9:
 		pop 	%ebp
+		pop	%eax
 		## Jump to the code where we suspended 
 		Vm_Restore_context_reg %ebp, CNT_CONTEXT
 		pushl	CNT_IP(%ebp)
@@ -136,41 +140,42 @@
 	
 ### ###########################################################################
 ### Define the continuation call
- 	.MACRO Call_with_cc cont, data, this_cont
+ 	.MACRO Call_with_cc cont, data
 		Vm_Save_context_reg 	%ebp, CNT_CONTEXT
  		movl	$9f,	CNT_IP(%ebp)
- 		pushl	$\this_cont
-		popl	(\data+CNT_EXIT)
- 		pushl	$\data
- 		pushl	$\cont
+ 		pushl	%ebp
+		pushl	$\data
+		pushl	$\cont
 		ret
 	9:	
  	.ENDM
 
 ### ###########################################################################
 ### Return from continuatiom
-	.MACRO Exit_continuation_ret data
+	.MACRO Exit_continuation_ret 
 		Vm_Save_context_reg 	%ebp, CNT_CONTEXT
 
 		### Set the ip to the next instruction 
 		movl	$9f,	CNT_IP(%ebp)
 		pushl	CNT_EXIT(%ebp)
+		nop
 		ret
 	9:	
 	.ENDM
 
-	.MACRO Exit_continuation data
+	.MACRO Exit_continuation 
 		Vm_Save_context_reg 	%ebp, CNT_CONTEXT
-
 		### Set the ip to the next instruction 
-		movl	$9f,	CNT_IP(%ebp)
-		pushl	$ \data
-		pushl	CNT_EXIT(%ebp)
+		movl	$9f,	CNT_IP(%ebp) # Save our instruction pointer
+		pushl	%ebp		     # Pass old context to called cont
+		movl	CNT_EXIT_DATA(%ebp),%ebp # Get called context
+		pushl	%ebp
+		pushl	CNT_CONTINUATION(%ebp)		 # Find main called proc
 		ret
 	9:	
 	.ENDM
 
-
+Define_continuation_context Dummy
 ### ###########################################################################
 ### Define the direct continuation call
 	.MACRO Continuation_entry name, cont, data
@@ -180,7 +185,8 @@
 	\name:
 		Vm_Save_context \name\()_context
  		movl	$9f,	(\data+CNT_EXIT)
- 		push	$\data
+		pushl	$0
+ 		pushl	$\data
 		jmp	\cont
 9:
 	Vm_Restore_context \name\()_context
@@ -192,8 +198,15 @@
 	.MACRO Set_continuation_slot value, slot, data
 		movl	\value, (\data+\slot)
 	.ENDM
-	
 
-	
+	.MACRO Define_continuation_with_context name
+		Define_continuation_context \name\()_data
+		Define_continuation \name
+	.ENDM
+
+	.MACRO Call_with_cc_with_context name
+		Call_with_cc \name, \name\()_data
+	.ENDM
+
 #endif
 ### ifndef CONTINUATION_H_S
