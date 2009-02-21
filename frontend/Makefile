@@ -1,7 +1,7 @@
 
-bin/fource: *.c *.h
+bin/fource: *.c *.h 
 	gcc  -L../bin -I../shared -ldl -lfource-core --std=c99 -ggdb3  -o fource   *.c ../bin/libfource-core.a
-	mv fource bin/fource
+	mv fource bin/
 
 
 # fource.img: save-image.c getkey.S exception.S interpret.S

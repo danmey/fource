@@ -1,20 +1,24 @@
 all:	
 	make core frontend
+.PHONY : core
+.PHONY : frontend
+.PHONY : clean
 
-core:	bin/fource.a
-frontend: core bin/fource
 
-bin/fource.a:
-	cd core && make && cp bin/*.a ../bin
+
+core:
+	-cd core && make \
+		&& test bin/libfource-core.a -nt ../bin/libfource-core.a \
+		|| cp bin/libfource-core.a ../bin/libfource-core.a
 	cd ..
 
-bin/fource:
+frontend:
 	cd frontend && make && cp bin/* ../bin
 	cd ..
 
 clean:
-	cd core && make clean
+	-cd core && make clean
 	cd ..
 	cd frontend && make clean
 	cd ..
-	rm bin/*
+	-rm bin/*
