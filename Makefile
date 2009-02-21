@@ -1,5 +1,5 @@
 all:	
-	if [ ! -e bin ]; then mkdir bin; fi
+	echo `test ! -e bin && mkdir bin` > /dev/null
 	make core frontend
 
 core:	bin/fource.a
