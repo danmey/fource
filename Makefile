@@ -1,4 +1,5 @@
 all:	
+	if [ ! -e bin ]; then mkdir bin; fi
 	make core frontend
 
 core:	bin/fource.a
