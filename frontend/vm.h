@@ -1,7 +1,7 @@
 #ifndef _VM_H
 #define _VM_H
 
-#include "const.S"
+#include "const.h"
 
 
 

@@ -2,5 +2,8 @@
 *~
 junk
 fource
-#*
+\#*
+.\#*
 *.so
+image
+*.a
