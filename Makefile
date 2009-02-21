@@ -9,7 +9,7 @@ bin/fource.a:
 	cd ..
 
 bin/fource:
-	cd frontend && make && cp ../bin/*.a bin
+	cd frontend && make && cp bin/* ../bin
 	cd ..
 
 clean:
