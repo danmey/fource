@@ -43,13 +43,12 @@ Msg_Exception_handler_not_def:
 .GLOBL	Exception_data
 .GLOBL	Exception
 	
-Define_continuation_context Exception_data
-Define_continuation Exception
+Define_continuation_with_context Exception
 exception_loop:	
 	cmpl	$0,	Vm_Exception_handler
 	jz	exception_handler_empty
-	pushl	%eax		     # our saved exception ID
-	movl	CNT_EXIT(%ebp), %ebx # our saved exception
+	pushl	%edx		     # our saved exception ID
+	movl	CNT_EXIT_DATA(%ebp), 	%ebx # our saved exception
 
 	## Copy context first
 	leal	CNT_CONTEXT(%ebx), 	%esi
@@ -62,7 +61,6 @@ exception_loop:
 	leal	CNT_RET_STACK(%ebx),	%eax
 	stosl
 	popl	%eax
-	mov	$ 3, %eax
 	stosl
 	## Call our handler routine
 ### 	Vm_Save_context_reg 	%ebp, CNT_CONTEXT

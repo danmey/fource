@@ -82,9 +82,8 @@ exit_func:
 	
 word_end_fail:
 	## TODO: Correct to get it work again
-	Set_continuation_slot $WORD_TO_LONG_EXCEPTION, CNT_AX, Exception_data
-	Call_with_cc Exception, Exception_data
+	Set_continuation_slot $WORD_TO_LONG_EXCEPTION, CNT_DX, Exception_data
+	Call_with_cc_with_context Exception
 	Exit_continuation_ret
-	ret
 	jmp	Get_word
 

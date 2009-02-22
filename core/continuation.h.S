@@ -100,6 +100,7 @@
 	## and fetch the paremeter to %ebp
 		
 		mov	(%esp), %ebp
+		Vm_Restore_general_reg %ebp,CNT_CONTEXT
 		xchg	4(%esp),%eax
 		movl	%eax,	CNT_EXIT_DATA(%ebp)
 		movl	$\name,	CNT_CONTINUATION(%ebp)

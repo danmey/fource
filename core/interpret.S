@@ -102,6 +102,7 @@ vm_loop:
 		push	%eax
 		xchgl	%esi,%esp
 		C_Call_edx	Parse_literal
+		jz 	4f
 		mov	%edx,%eax
 		jmp	3f
 2:	
@@ -109,9 +110,16 @@ vm_loop:
 	pushl	$3f
 	pushl 	%edx
 	ret
-3:	
+3:
+	# This is called in Get_key module, so if we run out of
+	# characters in the stream it will return to host
 #	Exit_continuation_ret	
 	jmp vm_loop
+4:
+	Set_continuation_slot $WORD_NOT_FOUND_EXCEPTION, CNT_DX, Exception_data
+	Call_with_cc_with_context Exception
+	jmp vm_loop
+
 	
 Vm_interpret:
 	Vm_Save_context Enviroment_context

@@ -6,6 +6,7 @@
 #define CONTEXT_H_S
 
 
+	## TODO: This module must be refactored many macros can be simplified
 
 	
 	.MACRO Define_context context
@@ -40,7 +41,23 @@
 		popal
 		movl	(32+\ofs)(\reg),%esp
 	.ENDM
-
+	.DATA
+Reg_ESP:	.LONG 0
+	.MACRO Vm_Restore_general_reg reg,ofs
+		movl	%esp, Reg_ESP
+		leal	\ofs(\reg),	%esp
+	## Skip not general registers
+		pop	%eax
+		pop	%eax
+		pop	%eax
+		pop	%eax
+	## Now the interesting ones
+		pop	%ebx
+		pop	%edx
+		pop	%ecx
+		pop	%eax
+		movl	Reg_ESP,%esp
+	.ENDM
 
 
 

@@ -62,6 +62,9 @@ int kernel_exception_handler(Vm_Exception_t* ex)
       // TODO: Debug Fear macro as it crashes :)
       printf("***Exception: Word to long. Truncating..\n");
       break;
+    case WORD_NOT_FOUND_EXCEPTION:
+      printf("***Exception: Word not found..\n");
+      break;
       }
 }
 
