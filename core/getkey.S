@@ -36,9 +36,12 @@ _Image_start:
 .GLOBL Input_stream
 	
  .GLOBL	Get_word_data
-	Define_continuation_with_context Get_word
+################################################################################
+#	Define_continuation_with_context Get_word
+# Commented out! we need continuation on VM rather then Get_word module
+#
+Get_word:
 	movl	Input_stream, 	%esi
-loop:
 	movl	$Token_buffer,	%edi
 	xor	%eax,%eax
 	push	%edi
@@ -49,9 +52,10 @@ white:
 	lodsb
 	or	%al,	%al
 	jnz	not_end
-	Exit_continuation 
-	mov	Input_stream, 	%esi
-	jmp	loop
+	## Exit damn continuation if there is end ot token :)
+	## TODO: Replace somewhat with Exit_continuation call
+	Exit_continuation_ret
+	jmp	Get_word
 not_end:	
 	Is_white %al,	white
 	dec	%esi
@@ -68,26 +72,19 @@ not_white:
 	
 word_end:
 	dec 	%esi
-	call	print_word
-	Exit_continuation
-	jmp	loop
+	jmp	exit_func
 word_end2:
 	dec 	%esi
-	call	print_word
-	Exit_continuation
-	mov	Input_stream, 	%esi
-	jmp	loop
-
+	jmp	exit_func
+exit_func:
+	movl	%esi, Input_stream
+	ret
+	
 word_end_fail:
+	## TODO: Correct to get it work again
 	Set_continuation_slot $WORD_TO_LONG_EXCEPTION, CNT_AX, Exception_data
 	Call_with_cc Exception, Exception_data
 	Exit_continuation_ret
 	ret
-	jmp	loop
-print_word:
-	## push	$Token_buffer
-	## push	$fmt_str
-	## call	printf
-	## add	$8,%esp
-	ret
+	jmp	Get_word
 

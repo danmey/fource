@@ -91,60 +91,39 @@ msg:	.asciz "%s "
 ### TODO: Remove this ugly globals!
 Word_found:	.LONG 0
 Value_to_push:	.LONG 0
-	
 Define_continuation_with_context Vm
-vm_loop:	
-	cmpl	$0,Word_found
-	jnz	here3
-	xchgl	%esi,%esp
-	push	%eax
-	mov	Value_to_push,	%eax
-	xchgl	%esi,%esp
- 	jmp here2
-here3:	
-	addl	$(4+4+32), Word_found
-	pushl	$here2
-	pushl 	Word_found
+vm_loop:
+	C_Call_safe	Get_word
+	C_Call_edx	Find_word
+#	C_Call_safe	printf,$Token_buffer
+	orl	%edx,%edx
+	jnz	2f
+		xchgl	%esp,%esi
+		push	%eax
+		xchgl	%esi,%esp
+		C_Call_edx	Parse_literal
+		mov	%edx,%eax
+		jmp	3f
+2:	
+	addl	$(4+4+32), %edx
+	pushl	$3f
+	pushl 	%edx
 	ret
-here2:
-	movl	$0,Word_found
-	Exit_continuation	
+3:	
+#	Exit_continuation_ret	
 	jmp vm_loop
 	
-	
-Define_continuation_with_context Interpret
-a_loop:	
-	Call_with_cc_with_context Get_word
-#	C_Call_safe printf, $Token_buffer, $msg
-	C_Call_ret_safe	Find_word
-# 	C_Call_safe printf,%eax,$Fmt_dec 
-	mov	%eax,Word_found
-	orl	%eax,%eax
-	jz	1f
-	jmp 	2f
-1:
-	C_Call_ret_safe	Parse_literal
-	movl	$0,Word_found
-	movl	%eax,Value_to_push	
-2:
-	Call_with_cc_with_context Vm
-	cmp	$0, Token_buffer
-	jnz	a_loop
-	Exit_continuation_ret
-	jmp	a_loop
-
-
 Vm_interpret:
 	Vm_Save_context Enviroment_context
 	push	%ebp
 	mov	%esp,%ebp
 	mov	8(%ebp),%eax
 	mov	%eax,Input_stream
-	call	Vm_parse
+	call	Vm_Entry_point
 	pop	%ebp
 	ret
 	
-Continuation_entry Vm_parse, Interpret, Interpret_data
+Continuation_entry Vm_Entry_point, Vm, Vm_data
 
 
 	

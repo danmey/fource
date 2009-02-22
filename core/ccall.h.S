@@ -58,5 +58,12 @@
 		popa
 	.ENDM
 
+	.MACRO C_Call_edx params:vararg
+		pusha
+		C_Call \params
+		movl	%eax, 20(%esp)
+		popa
+	.ENDM
+
 
 #endif
