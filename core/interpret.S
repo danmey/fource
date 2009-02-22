@@ -87,16 +87,49 @@
 .GLOBL Interpret_data
 	
 msg:	.asciz "%s "
+
+### TODO: Remove this ugly globals!
+Word_found:	.LONG 0
+Value_to_push:	.LONG 0
+	
+Define_continuation_with_context Vm
+vm_loop:	
+	cmpl	$0,Word_found
+	jnz	here3
+	xchgl	%esi,%esp
+	push	%eax
+	mov	Value_to_push,	%eax
+	xchgl	%esi,%esp
+ 	jmp here2
+here3:	
+	addl	$(4+4+32), Word_found
+	pushl	$here2
+	pushl 	Word_found
+	ret
+here2:
+	movl	$0,Word_found
+	Exit_continuation	
+	jmp vm_loop
+	
+	
 Define_continuation_with_context Interpret
 a_loop:	
 	Call_with_cc_with_context Get_word
+#	C_Call_safe printf, $Token_buffer, $msg
 	C_Call_ret_safe	Find_word
+# 	C_Call_safe printf,%eax,$Fmt_dec 
+	mov	%eax,Word_found
 	orl	%eax,%eax
 	jz	1f
-#	C_Call_safe printf,$Token_buffer
-	jmp	2f
-1:	
-2:	
+	jmp 	2f
+1:
+	C_Call_ret_safe	Parse_literal
+	movl	$0,Word_found
+	movl	%eax,Value_to_push	
+2:
+	Call_with_cc_with_context Vm
+	cmp	$0, Token_buffer
+	jnz	a_loop
 	Exit_continuation_ret
 	jmp	a_loop
 

@@ -6,10 +6,21 @@
 	## We use subroutine threading and TOS optimizations
 	## %esi contain our parameter stack and %eax TOS
 	Defword plus, "+"
-		add	(%esi),%eax
-		add	$4, %esi
+		add	%eax,(%esp)
+		pop	%eax
 	Endword
-
+	.GLOBL wcode_dot
+	Defword dot, "."
+		pusha
+		push	%eax
+		push	$Fmt_dec
+		call	printf
+	 	add	$8,%esp
+		popa
+		pop	%eax
+	Endword
+	
+	Defvar  base, "base", 10
 	Defvar last, "last", wstart_last
 
 Cells:

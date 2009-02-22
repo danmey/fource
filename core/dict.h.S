@@ -26,7 +26,7 @@
 	wcode_\label:
 	# This instruction is going to restore stack for local use in word
 	# Parameter stack resides in %esi register
-		xchgl	%esp,%esi			
+		xchgl	%esp,%esi
 	.ENDM
 	
 	
@@ -47,7 +47,7 @@
 		add	$4, %esi
 		mov	%eax,(%esi)
 		movl	var_\()\label,%eax
-		Endword
+		Endword 
 var_\()\label:
 		.LONG 	\value
 	.GLOBL var_\()\label

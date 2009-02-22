@@ -1,5 +1,8 @@
 #include "ccall.h.S"
 
+.GLOBL Fmt_dec
+.GLOBL Parse_literal
+	.DATA
 Fmt_dec:	.ASCIZ "%d"
 Fmt_hex:	.ASCIZ "%x"
 Fmt_real:	.ASCIZ "%f"
@@ -24,28 +27,28 @@ Parse_literal:
 	repnz 	scasb
 	not 	%ecx
 	dec 	%ecx
-
+ 
 	mov	$'.',%al
-	mov	$_token,%edi
+	mov	$Token_buffer,%edi
 	repnz 	scasb
 	jnz	1f	# real
 
-	C_Call_ret_safe sscanf,$_token,$Fmt_float,$_temp_long
+	C_Call_ret_safe sscanf,$_temp_long,$Fmt_real, $Token_buffer
 	cmp	$0,%eax
 	mov 	_temp_long,%eax
 	pop	%edi
 	ret
 1:
-	cmpb	$10,_var_base
+	cmpb	$10,var_base
 	jz	2f
-	C_Call_ret_safe sscanf,$_token,$Fmt_hex_val,$_temp_long
+	C_Call_ret_safe sscanf,$_temp_long,$Fmt_hex, $Token_buffer
 	cmp	$0,%eax
 	mov 	_temp_long,%eax
 	pop	%edi
-	ret
+	ret 
 2:	
 # Use cheap sscanf
-	C_Call_ret_safe sscanf,$_token,$Fmt_dec_val,$_temp_long
+	C_Call_ret_safe sscanf,$_temp_long,$Fmt_dec,$Token_buffer
 3:	
 	cmp	$0,%eax
 	mov 	_temp_long,%eax

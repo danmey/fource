@@ -16,12 +16,13 @@
 	#	>tail:	rest of parameters
 	.MACRO _C_call size, func, head, tail:vararg
 		.ifb \tail
+			pushl 	\head
 			call 	\func
-			add	$_Arg_size,	%esp
+			add	$\size,	%esp
 		.else
+			pushl	\head
 			_C_call \size+4,\func,\tail
 		.endif
-		pushl	\head
 	.ENDM
 
 
