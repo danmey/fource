@@ -23,7 +23,11 @@
 	 	.FILL 		NAMESIZE - ( . - nstart )	# pad it
 		.LONG		0		# Flags
 		.SET		Wprev, wstart_\label	# update prev label
+		.LONG		wcode_compile
+		.LONG		wcode_execute
 	wcode_\label:
+		.SET	Word_header_size, wcode_\label - wstart_\label
+		.GLOBL 	Word_header_size
 	# This instruction is going to restore stack for local use in word
 	# Parameter stack resides in %esi register
 		xchgl	%esp,%esi
@@ -44,8 +48,7 @@
 	# Macro that defines a variable
 	.MACRO 	Defvar 		label, name_str, value
 		Defword	\label, \name_str
-		add	$4, %esi
-		mov	%eax,(%esi)
+		push	%eax
 		movl	var_\()\label,%eax
 		Endword 
 var_\()\label:

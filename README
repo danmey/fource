@@ -1,0 +1,8 @@
+Each word have compilation semantics and execution semantics. 
+Compilation semantics:
+accept on top of stack pointer to word
+perform compilation (or other actions) when the word is compiled
+Cxecution semantics defines word behaviour when it is invoked
+
+:macro will compile the compilation semantics of each of the word during compilation and execution semantics 
+during intepretation.

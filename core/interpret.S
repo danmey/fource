@@ -35,10 +35,6 @@
 
 
 
-	# Get the body of the word
-	.MACRO	WBody reg
-		addl	$(NAMESIZE+4),\reg
-	.ENDM
 
 
 
@@ -105,8 +101,12 @@ vm_loop:
 		jz 	4f
 		mov	%edx,%eax
 		jmp	3f
-2:	
-	addl	$(4+4+32), %edx
+2:
+	xchgl	%esp,%esi
+	push	%eax
+	xchgl	%esp,%esi
+	mov	%edx,%eax
+	mov	WOFFS_EXECUTION_TOKEN(%edx), %edx
 	pushl	$3f
 	pushl 	%edx
 	ret
@@ -136,19 +136,6 @@ Continuation_entry Vm_Entry_point, Vm, Vm_data
 
 	
 		
-## Emit_sub_call:
-##  	// Get body of the word
-## 	WBody 	%ebx
-## 	// Calculate relative offset for call
-## 	mov	%edi,	%eax
-## 	sub	%ebx,	%eax
-## 	neg	%eax
-## 	sub	$5, 	%eax
-## 	// Store op-code for call
-## 	EmitB	%edi,	$0xE8
-## 	EmitDW	%edi,	%eax
-## 	EmitB	%edi,	$0xC3
-## 	ret
 
 # TODO: Make it case insensitive
 Find_word:
