@@ -1,8 +1,9 @@
+#include "const.h"
 #include "dict.h.S"
 #include "ccall.h.S"
 	
 .data
-	Defvar state, "state", VM_STATE_COMPILING
+	Defvar state, "state", VM_STATE_INTERPRETING
 	# Pointer to last word
 	Defvar here, "here", Cells
 	## We use subroutine threading and TOS optimizations
@@ -12,6 +13,7 @@
 		pop	%eax
 	Endword
 	.GLOBL wcode_dot
+	
 	Defword dot, "."
 		pusha
 		push	%eax
@@ -25,9 +27,31 @@
 		# Get the body of the word
 		addl	$Word_header_size,%eax
 	Endword
-	Defword compile,"compile"
-		
+	Defword lsqbracket, "]"
+		movl	$VM_STATE_COMPILING, var_state
 	Endword
+
+	Defword rqbracket, "[", IMMEDIATE_WORD
+		movl	$VM_STATE_INTERPRETING, var_state
+	Endword
+
+	Defword compile,"compile"
+		pusha
+		mov	var_here,%edi
+		C_Call_safe Emit_sub_call
+		popa
+		pop	%eax
+	Endword
+
+	Defword epilog,"epilog"
+		pusha
+		movl	$(Ret_code_end-Ret_code),%ecx
+		movl	$Ret_code,	%esi
+		movl	var_here,	%edi	
+		rep	movsb
+		popa
+	Endword
+	
 	Defword execute,"execute"
 		call	wcode_body
 		mov	%eax,	%edx
@@ -38,7 +62,7 @@
 	1:	
 	 	xchg	%esi,%esp
 	Endword
-
+	
 	Defword create, "create"
 		xchg	%esi,%esp
 		C_Call_safe	Get_word
@@ -63,9 +87,10 @@
 		stosl
 		movl	$wcode_execute,%eax
 		stosl
-		movl	$(Test_code_end-Test_code),%ecx
-		movl	$Test_code,	%esi
-		rep	movsb
+		## movl	$(Test_code_end-Test_code),%ecx
+		## movl	$Test_code,	%esi
+		## rep	movsb
+		movl	%edi,	var_here
 		pop	%edi
 		mov	%edi,var_last
 		popa
@@ -78,6 +103,10 @@
 Cells:
 	.FILL 1024*1024
 
+Ret_code:	
+	xchg	%esi,	%esp
+	ret
+Ret_code_end:	
 Test_code:
 	xchg	%esi,	%esp
 	push	%eax

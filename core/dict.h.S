@@ -12,8 +12,9 @@
 	# statically new core words
  	.SET 		Wprev, 0
 
+
 	# Macro that defines new word
-	.MACRO 	Defword 	label, name
+	.MACRO 	Defword 	label, name, flags:vararg
 		.ALIGN 4
 	wstart_\label:
 		.LONG		Wprev		# This a link to previous word
@@ -21,7 +22,12 @@
 		.SET 		nstart, .	# name into 32 bytes
 		.ASCIZ		"\name"	# store name
 	 	.FILL 		NAMESIZE - ( . - nstart )	# pad it
-		.LONG		0		# Flags
+		.IFB	\flags
+			.LONG		0		# Flags
+		.ELSE
+			.LONG	\flags
+		.ENDIF
+	
 		.SET		Wprev, wstart_\label	# update prev label
 		.LONG		wcode_compile
 		.LONG		wcode_execute

@@ -91,5 +91,6 @@
 
 #define WOFFS_EXECUTION_TOKEN (Word_header_size-4)
 #define WOFFS_COMPILATION_TOKEN (Word_header_size-8)
+#define WOFFS_FLAGS (Word_header_size-12)
 
 

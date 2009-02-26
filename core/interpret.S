@@ -39,21 +39,6 @@
 
 
 	
-	# Emit a byte into memory pointed by register
-	.MACRO EmitB reg, b
-		movb	\b,	(\reg)
-		incl	\reg
-	.ENDM
-
-
-
-	
-	# Emit a dword into memory pointed by register
-	.MACRO EmitDW 	reg, b
-		movl	\b,	(\reg)
-		addl	$4,	\reg
-	.ENDM
-
 
 
 	
@@ -94,20 +79,32 @@ vm_loop:
 #	C_Call_safe	printf,$Token_buffer
 	orl	%edx,%edx
 	jnz	2f
-		xchgl	%esp,%esi
-		push	%eax
-		xchgl	%esi,%esp
+### We need to compile literal
+		xchgl	%esp,	%esi 	# access parameter stack
+		push	%eax		# push TOS
+		xchgl	%esi,%esp	# access call stack
 		C_Call_edx	Parse_literal
-		jz 	4f
-		mov	%edx,%eax
-		jmp	3f
+		jz 	4f		# jump if not literal
+		mov	%edx,%eax 	# set TOS to value of literal
+		jmp	3f		# loop
 2:
-	xchgl	%esp,%esi
-	push	%eax
-	xchgl	%esp,%esi
-	mov	%edx,%eax
-	mov	WOFFS_EXECUTION_TOKEN(%edx), %edx
-	pushl	$3f
+### We need to compile word
+	xchgl	%esp,%esi	# access parameter stack
+	push	%eax		# push TOS
+	xchgl	%esp,%esi	# access call stack
+	mov	%edx,%eax	# set TOS to value of literal
+	cmpl	$IMMEDIATE_WORD, WOFFS_FLAGS(%edx)
+	jz 	immediate
+	cmpl	$VM_STATE_COMPILING, var_state
+	jz	1f
+immediate:	
+	mov	WOFFS_EXECUTION_TOKEN(%edx), %edx # get the execution token
+	jmp	4f
+1:
+	
+	mov	WOFFS_COMPILATION_TOKEN(%edx), %edx
+4:	
+	pushl	$3f				  # form call to XT
 	pushl 	%edx
 	ret
 3:
