@@ -75,7 +75,10 @@ Value_to_push:	.LONG 0
 Define_continuation_with_context Vm
 vm_loop:
 	C_Call_safe	Get_word
+	push	%ebx
+	mov	$Token_buffer,	%ebx
 	C_Call_edx	Find_word
+	pop	%ebx
 #	C_Call_safe	printf,$Token_buffer
 	orl	%edx,%edx
 	jnz	2f
@@ -133,14 +136,15 @@ Continuation_entry Vm_Entry_point, Vm, Vm_data
 
 	
 		
-
+.GLOBL	Find_word
 # TODO: Make it case insensitive
 Find_word:
  	movl	var_last,	%edx
-next:	
+next:
+	
 	movl	$NAMESIZE,	%ecx
 	leal	4(%edx),	%edi
-	mov	$Token_buffer,	%esi
+	mov	%ebx,		%esi
 	repe	cmpsb
 	or	%ecx,	%ecx
 	jnz	not_found
@@ -150,5 +154,5 @@ not_found:
 	movl	(%edx),		%edx
 	or	%edx,		%edx
 	jnz	next
-	xor	%eax,		%eax
+	xor	%eax,	%eax
 	ret

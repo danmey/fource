@@ -1,7 +1,7 @@
 #include "const.h"
 #include "dict.h.S"
 #include "ccall.h.S"
-	
+# #include "continuation.h.S"
 .data
 	Defvar state, "state", VM_STATE_INTERPRETING
 	# Pointer to last word
@@ -37,21 +37,34 @@
 
 	Defword compile,"compile"
 		pusha
-		mov	var_here,%edi
-		C_Call_safe Emit_sub_call
+		mov	var_here, %edi
+		addl	$Word_header_size,%eax
+		call 	Emit_sub_call
+		mov	%edi, var_here
 		popa
 		pop	%eax
 	Endword
 
-	Defword epilog,"epilog"
+	Defword epilog,"epilog", IMMEDIATE_WORD
 		pusha
-		movl	$(Ret_code_end-Ret_code),%ecx
-		movl	$Ret_code,	%esi
+		movl	$(Epilog_code_end-Epilog_code),%ecx
+		movl	$Epilog_code,	%esi
 		movl	var_here,	%edi	
 		rep	movsb
+		movl	%edi, var_here
 		popa
 	Endword
-	
+
+	Defword prolog,"prolog", IMMEDIATE_WORD
+		pusha
+		movl	$(Prolog_code_end-Prolog_code),%ecx
+		movl	$Prolog_code,	%esi
+		movl	var_here,	%edi	
+		rep	movsb
+		movl	%edi, var_here
+		popa
+	Endword
+
 	Defword execute,"execute"
 		call	wcode_body
 		mov	%eax,	%edx
@@ -61,6 +74,25 @@
 		push	%edx
 	1:	
 	 	xchg	%esi,%esp
+	Endword
+
+	Defword slash,"\\", IMMEDIATE_WORD
+		xchg	%esi,%esp
+		C_Call_safe	Get_word
+		mov	$Token_buffer, %ebx
+		C_Call_edx 	Find_word
+		orl	%edx,%edx
+		jz	1f
+		mov	WOFFS_COMPILATION_TOKEN(%edx), %edx
+		pushl	$3f				  # form call to XT
+		pushl 	%edx
+		ret
+		jmp	2f
+1:
+#		Set_continuation_slot $WORD_TO_LONG_EXCEPTION, CNT_DX, Exception_data
+#		Call_with_cc_with_context Exception
+2:	
+		xchg	%esi,%esp
 	Endword
 	
 	Defword create, "create"
@@ -99,14 +131,20 @@
 	
 	Defvar  base, "base", 10
 	Defvar last, "last", wstart_last
+	.data
 	.align	4
 Cells:
 	.FILL 1024*1024
 
-Ret_code:	
-	xchg	%esi,	%esp
+Prolog_code:
+	xchg	%esp,	%esi
+Prolog_code_end:	
+
+Epilog_code:
+	xchg	%esp,	%esi
 	ret
-Ret_code_end:	
+Epilog_code_end:
+
 Test_code:
 	xchg	%esi,	%esp
 	push	%eax

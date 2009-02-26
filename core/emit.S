@@ -22,5 +22,5 @@ Emit_sub_call:
 	// Store op-code for call
 	EmitB	%edi,	$0xE8
 	EmitDW	%edi,	%edx
-	EmitB	%edi,	$0xC3
+	mov	%edi,	%eax
 	ret
