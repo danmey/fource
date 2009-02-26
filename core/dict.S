@@ -1,7 +1,7 @@
 #include "const.h"
 #include "dict.h.S"
 #include "ccall.h.S"
-# #include "continuation.h.S"
+#include "continuation.h.S"	
 .data
 	Defvar state, "state", VM_STATE_INTERPRETING
 	# Pointer to last word
@@ -77,24 +77,31 @@
 	Endword
 
 	Defword slash,"\\", IMMEDIATE_WORD
-		xchg	%esi,%esp
 		C_Call_safe	Get_word
 		mov	$Token_buffer, %ebx
 		C_Call_edx 	Find_word
 		orl	%edx,%edx
 		jz	1f
+		push	%eax		# push TOS
+		mov	%edx,	%eax	# set TOS to value of literal
+		xchg	%esi,%esp
 		mov	WOFFS_COMPILATION_TOKEN(%edx), %edx
-		pushl	$3f				  # form call to XT
+		pushl	$2f				  # form call to XT
 		pushl 	%edx
 		ret
 		jmp	2f
 1:
-#		Set_continuation_slot $WORD_TO_LONG_EXCEPTION, CNT_DX, Exception_data
-#		Call_with_cc_with_context Exception
+		Set_continuation_slot $WORD_TO_LONG_EXCEPTION, CNT_DX, Exception_data
+		Call_with_cc_with_context Exception
 2:	
 		xchg	%esi,%esp
+#		xchg	%esi,%esp
 	Endword
-	
+
+	Defword immediate,"immediate",IMMEDIATE_WORD
+		movl	var_last,%edx
+		movl	$IMMEDIATE_WORD, WOFFS_FLAGS(%edx)
+	Endword
 	Defword create, "create"
 		xchg	%esi,%esp
 		C_Call_safe	Get_word
