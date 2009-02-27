@@ -3,7 +3,7 @@
 .GLOBL Fmt_dec
 .GLOBL Parse_literal
 	.DATA
-Fmt_dec:	.ASCIZ "%d"
+Fmt_dec:	.ASCIZ "%d\n"
 Fmt_hex:	.ASCIZ "%x"
 Fmt_real:	.ASCIZ "%f"
 _temp_long:	.LONG 0

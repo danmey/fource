@@ -1,4 +1,3 @@
-create : prolog ] \ create \ prolog \ ] [ epilog
-create ; prolog ] \ [ \ epilog  [ epilog immediate
-: A . ;
-1 A 
+create : prolog ] \ create \ prolog \ ] [ epilog 
+create ; prolog ] \ [ \ epilog  epilog [ immediate 
+: A . .  ; 2 2 A

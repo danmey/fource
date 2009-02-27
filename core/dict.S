@@ -38,6 +38,7 @@
 	Defword compile,"compile"
 		pusha
 		mov	var_here, %edi
+		C_Call_safe printf,%eax,$Fmt_dec
 		addl	$Word_header_size,%eax
 		call 	Emit_sub_call
 		mov	%edi, var_here
@@ -66,12 +67,13 @@
 	Endword
 
 	Defword execute,"execute"
-		call	wcode_body
+		addl	$Word_header_size,%eax
 		mov	%eax,	%edx
 		pop	%eax
-		xchg	%esi,%esp
+		xchg	%esi,	%esp
 		pushl	$1f
 		push	%edx
+		ret
 	1:	
 	 	xchg	%esi,%esp
 	Endword
