@@ -15,13 +15,9 @@
 	.GLOBL wcode_dot
 	
 	Defword dot, "."
-		pusha
-		push	%eax
-		push	$Fmt_dec
-		call	printf
-	 	add	$8,%esp
-		popa
-		pop	%eax
+		xchg 	%esp,%esi
+		C_Call_ret_safe	printf,%eax,$Fmt_dec
+		xchg 	%esp,%esi
 	Endword
 	Defword body,"body>"
 		# Get the body of the word
@@ -38,7 +34,6 @@
 	Defword compile,"compile"
 		pusha
 		mov	var_here, %edi
-		C_Call_safe printf,%eax,$Fmt_dec
 		addl	$Word_header_size,%eax
 		call 	Emit_sub_call
 		mov	%edi, var_here
@@ -46,7 +41,7 @@
 		pop	%eax
 	Endword
 
-	Defword epilog,"epilog", IMMEDIATE_WORD
+	Defword epilog,"epilog",  IMMEDIATE_WORD
 		pusha
 		movl	$(Epilog_code_end-Epilog_code),%ecx
 		movl	$Epilog_code,	%esi
@@ -123,6 +118,7 @@
 		stosb
 		dec	%ecx
 		jnz	1b
+		xorl	%eax,%eax
 		stosl
 		movl	$wcode_compile,%eax
 		stosl
