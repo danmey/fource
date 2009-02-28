@@ -1,11 +1,15 @@
 #include "ccall.h.S"
 
 .GLOBL Fmt_dec
+.GLOBL Fmt_hex
+.GLOBL Fmt_hex_
+	
 .GLOBL Parse_literal
 	.DATA
-Fmt_dec:	.ASCIZ "%d\n"
-Fmt_hex:	.ASCIZ "%x"
-Fmt_real:	.ASCIZ "%f"
+Fmt_dec:	.ASCIZ "%d "
+Fmt_hex:	.ASCIZ "%x "
+Fmt_hex_:	.ASCIZ "%#x "	
+Fmt_real:	.ASCIZ "%f "
 _temp_long:	.LONG 0
 
 	
@@ -19,6 +23,7 @@ Parse_literal:
 # Check for dot if dot is present then we have floating point number
 	push 	%edi
 	mov	$Token_buffer,%edi
+	
 # string length
 	xor 	%ecx,%ecx
 	not	%ecx

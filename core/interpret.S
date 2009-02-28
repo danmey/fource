@@ -75,21 +75,18 @@ Value_to_push:	.LONG 0
 Define_continuation_with_context Vm
 vm_loop:
 	C_Call_safe	Get_word
-	push	%ebx
 	mov	$Token_buffer,	%ebx
 	C_Call_edx	Find_word
-	pop	%ebx
-#	C_Call_safe	printf,$Token_buffer
 	orl	%edx,%edx
 	jnz	2f
 ### We need to compile literal
 		xchgl	%esp,	%esi 	# access parameter stack
 		push	%eax		# push TOS
-		xchgl	%esi,%esp	# access call stack
+		xchgl	%esi,	%esp	# access call stack
 		C_Call_edx	Parse_literal
-		jz 	4f		# jump if not literal
+		jz 	5f		# jump if not literal
 		mov	%edx,%eax 	# set TOS to value of literal
-		jmp	3f		# loop
+		jmp	6f		# loop
 2:
 ### We need to compile word
 	xchgl	%esp,%esi	# access parameter stack
@@ -110,16 +107,24 @@ immediate:
 	pushl	$3f				  # form call to XT
 	pushl 	%edx
 	ret
-3:
+3:	
 	# This is called in Get_key module, so if we run out of
 	# characters in the stream it will return to host
 #	Exit_continuation_ret	
 	jmp vm_loop
-4:
+5:
 	Set_continuation_slot $WORD_NOT_FOUND_EXCEPTION, CNT_DX, Exception_data
 	Call_with_cc_with_context Exception
 	jmp vm_loop
 
+6:
+	cmpl	$VM_STATE_COMPILING, var_state
+	jnz	1f
+	push	$1f
+	push	$wcode_literal
+	ret
+1:	jmp 	vm_loop
+	
 	
 Vm_interpret:
 	Vm_Save_context Enviroment_context

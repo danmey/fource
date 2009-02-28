@@ -18,6 +18,7 @@
 
 /* TODO: Make it windows friendly... */
 /* VERY CLUMSY! */
+
 int just_one_line(FILE* f, int max_buffer, char* o_buffer)
 {
     assert(o_buffer != NULL);
@@ -87,7 +88,8 @@ int main()
     char line[257];
     //printf("%x\n", &Vm_Exception_handler);
     Vm_Exception_handler = &kernel_exception_handler;
-    while( EOF != just_one_line(stdin, 256, line) )
+    //    while( EOF != scanf("%s\n", line) )
+        while( EOF != just_one_line(stdin, 256, line) )
 	{
 	  Vm_interpret(line);
 	    //      puts("ala");

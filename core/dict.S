@@ -1,7 +1,9 @@
 #include "const.h"
 #include "dict.h.S"
 #include "ccall.h.S"
-#include "continuation.h.S"	
+#include "continuation.h.S"
+#include "emit.h.S"
+	
 .data
 	Defvar state, "state", VM_STATE_INTERPRETING
 	# Pointer to last word
@@ -15,10 +17,19 @@
 	.GLOBL wcode_dot
 	
 	Defword dot, "."
-		xchg 	%esp,%esi
-		C_Call_ret_safe	printf,%eax,$Fmt_dec
-		xchg 	%esp,%esi
+		cmpl	$10, var_base
+		jnz 	1f
+			C_Call_safe printf,%eax,$Fmt_dec
+			jmp	2f
+	1:
+		cmp	$16, var_base
+		jnz 	2f
+			C_Call_safe printf,%eax,$Fmt_hex_
+			jmp	2f
+	2:
+		pop	%eax
 	Endword
+	
 	Defword body,"body>"
 		# Get the body of the word
 		addl	$Word_header_size,%eax
@@ -32,15 +43,23 @@
 	Endword
 
 	Defword compile,"compile"
-		pusha
+		pusha 
 		mov	var_here, %edi
 		addl	$Word_header_size,%eax
-		call 	Emit_sub_call
+#		Emit_literal	$123
+		Emit_sub_call	%eax
 		mov	%edi, var_here
 		popa
 		pop	%eax
-	Endword
 
+	Endword
+	.GLOBL wcode_literal
+	Defword literal, "literal"
+		mov	var_here,%edi
+		Emit_literal	%eax
+		mov	%edi, var_here
+		pop	%eax
+	Endword
 	Defword epilog,"epilog",  IMMEDIATE_WORD
 		pusha
 		movl	$(Epilog_code_end-Epilog_code),%ecx
@@ -60,7 +79,11 @@
 		movl	%edi, var_here
 		popa
 	Endword
-
+	Defword sp_fetch, "sp@"
+		push	%eax
+		mov	%esp,%eax
+	Endword
+	
 	Defword execute,"execute"
 		addl	$Word_header_size,%eax
 		mov	%eax,	%edx
@@ -69,7 +92,7 @@
 		pushl	$1f
 		push	%edx
 		ret
-	1:	
+	1:
 	 	xchg	%esi,%esp
 	Endword
 
@@ -139,14 +162,17 @@
 	.data
 	.align	4
 Cells:
+	.FILL 32+8+8
+.GLOBL First_word
+First_word:	
 	.FILL 1024*1024
-
+	
 Prolog_code:
-	xchg	%esp,	%esi
+#	xchg	%esp,	%esi
 Prolog_code_end:	
 
 Epilog_code:
-	xchg	%esp,	%esi
+#	xchg	%esp,	%esi
 	ret
 Epilog_code_end:
 
