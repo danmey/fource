@@ -1,5 +1,5 @@
 create : ] create \ ] exit, [
 create ; ] \ [ \ exit,  exit, [ immediate 
-: macro ) . . . ; immediate
+: macro ) 2 . ; immediate
 : A  macro ;
-1 2 3 A
+A
