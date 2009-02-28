@@ -34,14 +34,17 @@
 		# Get the body of the word
 		addl	$Word_header_size,%eax
 	Endword
-	Defword lsqbracket, "]"
+	Defword lsqbracket, "]",IMMEDIATE_WORD
 		movl	$VM_STATE_COMPILING, var_state
 	Endword
 
 	Defword rqbracket, "[", IMMEDIATE_WORD
 		movl	$VM_STATE_INTERPRETING, var_state
 	Endword
-
+	defword rbracket, ")", IMMEDIATE_WORD
+		movl	$VM_STATE_MACRO_COMPILING, var_state
+	Endword
+	
 	Defword compile,"compile"
 		pusha 
 		mov	var_here, %edi
@@ -60,7 +63,7 @@
 		mov	%edi, var_here
 		pop	%eax
 	Endword
-	Defword epilog,"epilog",  IMMEDIATE_WORD
+	Defword exit_comma,"exit,",  IMMEDIATE_WORD
 		pusha
 		movl	$(Epilog_code_end-Epilog_code),%ecx
 		movl	$Epilog_code,	%esi

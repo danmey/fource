@@ -30,8 +30,10 @@
 #define VM_STATE_INTERPRETING	(0<<0)
 /* Kernel is compiling */
 #define VM_STATE_COMPILING	(1<<0)
+/* Kernel is macro compiling */
+#define VM_STATE_MACRO_COMPILING (1<<1)
 /* Kernel thrown an exception */
-#define VM_STATE_EXCEPTION	(2<<2)
+#define VM_STATE_EXCEPTION	(1<<2)
 /* Mask out stream index where exception occured */
 #define VM_CHARACTER_INDEX_MASK	(0xFFFF0000)
 /* What kind of exception occured? */

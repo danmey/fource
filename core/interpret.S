@@ -97,6 +97,8 @@ vm_loop:
 	jz 	immediate
 	cmpl	$VM_STATE_COMPILING, var_state
 	jz	1f
+	cmpl	$VM_STATE_MACRO_COMPILING, var_state
+	jz	macro_compiling
 immediate:	
 	mov	WOFFS_EXECUTION_TOKEN(%edx), %edx # get the execution token
 	jmp	4f
@@ -124,7 +126,21 @@ immediate:
 	push	$wcode_literal
 	ret
 1:	jmp 	vm_loop
-	
+
+macro_compiling:
+	xchgl	%esp,%esi	# access parameter stack
+	push	%eax		# push TOS
+	xchgl	%esp,%esi	# access call stack
+	call	wcode_literal
+	mov	%eax,%edx
+ 	mov	WOFFS_COMPILATION_TOKEN(%edx), %edx
+	mov	%edx,%eax
+	subl	$Word_header_size,%eax
+ 	pushl	$3f				  # form call to XT
+ 	pushl 	%edx
+ 	ret
+3:
+	jmp	vm_loop
 	
 Vm_interpret:
 	Vm_Save_context Enviroment_context

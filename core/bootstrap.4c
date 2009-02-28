@@ -1,3 +1,5 @@
-create A prolog ] . .  5 .  [ epilog
+create : ] create \ ] exit, [
+create ; ] \ [ \ exit,  exit, [ immediate 
+: macro ) . . . ; immediate
+: A  macro ;
 1 2 3 A
-
