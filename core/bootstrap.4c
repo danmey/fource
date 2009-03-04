@@ -11,6 +11,6 @@ create ;
        \ !
        \ [ \ exit,
        exit, immediate
-       
-: ala 2 2 . . ; 
-ala
+
+: here here @ ;
+: begin here
