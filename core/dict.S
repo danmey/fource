@@ -188,8 +188,9 @@
 
 	Defword immediate,"immediate",IMMEDIATE_WORD
 		movl	var_last,%edx
-		movl	$IMMEDIATE_WORD, WOFFS_FLAGS(%edx)
+		movl	$wcode_execute,WOFFS_COMPILATION_TOKEN(%edx)
 	Endword
+
 	Defword create, "create"
 		xchg	%esi,%esp
 		C_Call_safe	Get_word
@@ -211,9 +212,9 @@
 		jnz	1b
 		xorl	%eax,%eax
 		stosl
-		movl	$wcode_compile,%eax
-		stosl
 		movl	$wcode_execute,%eax
+		stosl
+		movl	$wcode_compile,%eax
 		stosl
 		## movl	$(Test_code_end-Test_code),%ecx
 		## movl	$Test_code,	%esi

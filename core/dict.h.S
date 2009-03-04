@@ -22,6 +22,8 @@
 		.SET 		nstart, .	# name into 32 bytes
 		.ASCIZ		"\name"	# store name
 	 	.FILL 		NAMESIZE - ( . - nstart )	# pad it
+		.GLOBL Word_flags
+		.SET Word_flags,.-wstart_\label
 		.IFB	\flags
 			.LONG		0		# Flags
 		.ELSE
@@ -29,8 +31,11 @@
 		.ENDIF
 	
 		.SET		Wprev, wstart_\label	# update prev label
-		.LONG		wcode_compile
+		.SET		Word_semantics, . - wstart_\label
+		.GLOBL		Word_semantics
 		.LONG		wcode_execute
+		.LONG		wcode_compile
+#		.LONG		wcode_compile # meta compile
 	wcode_\label:
 		.SET	Word_header_size, wcode_\label - wstart_\label
 		.GLOBL 	Word_header_size

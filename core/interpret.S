@@ -69,6 +69,16 @@
 	
 msg:	.asciz "%s "
 
+	.MACRO Vm_push val
+		xchgl	%esp,	%esi 	# access parameter stack
+		pushl	%eax
+		mov	\val,%eax
+		xchgl	%esp,	%esi 	# access parameter stack
+	.ENDM
+	.MACRO Vm_set_TOS val
+		mov	\val, %eax
+	.ENDM
+	
 ### TODO: Remove this ugly globals!
 Word_found:	.LONG 0
 Value_to_push:	.LONG 0
@@ -80,27 +90,26 @@ vm_loop:
 	orl	%edx,%edx
 	jnz	2f
 ### We need to compile literal
-		xchgl	%esp,	%esi 	# access parameter stack
-		push	%eax		# push TOS
-		xchgl	%esi,	%esp	# access call stack
+		Vm_push	%eax
 		C_Call_edx	Parse_literal
-		jz 	5f		# jump if not literal
-		mov	%edx,%eax 	# set TOS to value of literal
+		jz 	5f
+		Vm_set_TOS %edx		# jump if not literal
 		jmp	6f		# loop
 2:
 ### We need to compile word
-	xchgl	%esp,%esi	# access parameter stack
-	push	%eax		# push TOS
-	xchgl	%esp,%esi	# access call stack
-	mov	%edx,%eax	# set TOS to value of literal
-	cmpl	$IMMEDIATE_WORD, WOFFS_FLAGS(%edx)
-	jz 	immediate
+
+	Vm_push	%edx
+
+       cmpl    $IMMEDIATE_WORD, WOFFS_FLAGS(%edx)
+       jz      immediate
+
 	cmpl	$VM_STATE_COMPILING, var_state
 	jz	1f
 	cmpl	$VM_STATE_MACRO_COMPILING, var_state
 	jz	macro_compiling
-immediate:	
-	mov	WOFFS_EXECUTION_TOKEN(%edx), %edx # get the execution token
+immediate:     
+       mov     WOFFS_EXECUTION_TOKEN(%edx), %edx # get the execution token
+#	mov	Word_semantics(%edx), %edx # get the execution token
 	jmp	4f
 1:
 	

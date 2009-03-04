@@ -1,11 +1,7 @@
 create : ] create \ ] exit, [
-create ; ] \ [ \ exit,  exit, [ immediate 
+create ; ] \ [ \ exit,  exit, [ immediate
 
-: ( \ ] ; immediate
-: 2dup >r swap dup r>   ;
-100 1 2dup . . . .
-: DO ) >r >r ] here @ ; immediate
+: test 3 + + . ;
 
-: LOOP here @ - \ branch, ; immediate
+2 2 test
 
-: test2 1 DO 1 + dup . LOOP ;

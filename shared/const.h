@@ -91,8 +91,8 @@
 #define CNT_CONTINUATION ((CNT_EXIT_DATA)+4)
 #define CNT_SIZE      ((CNT_CONTINUATION)+4)
 
-#define WOFFS_EXECUTION_TOKEN (Word_header_size-4)
-#define WOFFS_COMPILATION_TOKEN (Word_header_size-8)
-#define WOFFS_FLAGS (Word_header_size-12)
+#define WOFFS_EXECUTION_TOKEN (Word_semantics+0)
+#define WOFFS_COMPILATION_TOKEN (Word_semantics+4)
+#define WOFFS_FLAGS Word_flags
 
 
