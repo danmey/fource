@@ -2,18 +2,25 @@
 #define _CCALL_H
 
 
+################################################################################
+### Module: 		CCall
+### Description: 	Defines some useful macros for calling C routines
+### 
+
 
 	
-	########################################################################
-	# Macro: 	_C_call
-	# Desc:	 	Inner macro for unsafe C function call
-	#		Assumes that every parameter is dword wide
-	#		Fixes stack after call
-	#
-	# 	>size: 	accumulated size of pushed params on stack
-	# 	>func:	called function
-	#	>head:	first parameter
-	#	>tail:	rest of parameters
+
+################################################################################
+### Macro: 	_C_call
+### Description:
+### 	Inner macro for unsafe C function call
+###	Assumes that every parameter is dword wide
+###	Fixes stack after call
+### Arguments:
+### 	>size: 	accumulated size of pushed params on stack
+### 	>func:	called function
+###	>head:	first parameter
+###	>tail:	rest of parameters
 	.MACRO _C_call size, func, head, tail:vararg
 		.ifb \tail
 			pushl 	\head
@@ -24,9 +31,22 @@
 			_C_call \size+4,\func,\tail
 		.endif
 	.ENDM
+################################################################################
 
 
 	
+
+	################################################################################
+### Macro: 	_C_call
+### Description:
+### 	Inner macro for unsafe C function call
+###	Assumes that every parameter is dword wide
+###	Fixes stack after call
+### Arguments:
+### 	>size: 	accumulated size of pushed params on stack
+### 	>func:	called function
+###	>head:	first parameter
+###	>tail:	rest of parameters
 
 	########################################################################
 	# Macro: 	C_call

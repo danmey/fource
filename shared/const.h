@@ -27,11 +27,11 @@
 /* Kernel waits for more input */
 #define VM_STATE_ACCEPTING	(1<<1)
 /* Kernel is intepreting stream */
-#define VM_STATE_INTERPRETING	(0<<0)
+#define VM_STATE_INTERPRETING	0
 /* Kernel is compiling */
-#define VM_STATE_COMPILING	(1<<0)
+#define VM_STATE_COMPILING	1
 /* Kernel is macro compiling */
-#define VM_STATE_MACRO_COMPILING (1<<1)
+#define VM_STATE_MACRO_COMPILING 2
 /* Kernel thrown an exception */
 #define VM_STATE_EXCEPTION	(1<<2)
 /* Mask out stream index where exception occured */
@@ -70,7 +70,7 @@
 #define WORD_TO_LONG_EXCEPTION          3
 
 #define STACKDEPTH 256		
-
+// TODO: Get rid of most of this rubbish
 #define CNT_CONTEXT 0
 #define CNT_DI 	 0
 #define CNT_SI 	 4

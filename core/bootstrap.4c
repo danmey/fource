@@ -3,3 +3,4 @@ create ; ] \ [ \ exit, [ exit, immediate
 
 : test2 2 2 . . ;
 test2
+1 1 . .

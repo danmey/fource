@@ -1,30 +1,21 @@
-
 #include "const.h"			
 #include "context.h.S"			
 #include "continuation.h.S"			
+#include "ccall.h.S"
 
 
-	
-	.globl Vm_interpret
-	.globl Vm_reset
-
-	
-
-	
-################################################################################
-# Declare some useful macros
-#
-	
+	## Exports
+	.GLOBL Vm_interpret
+	.GLOBL Vm_reset
 
 
+	.DATA
 
 
+	## Our enviroment context, TODO: Do we need that?
+	Define_context Enviroment_context
 
 
-
-
-
-	
 	# Align register to some value
 	.MACRO	Align reg, n
 		decl	\reg
@@ -32,118 +23,57 @@
 		addl	$n,\reg
 	.ENDM
 
-
-
-
-
-
-
 	
-
-
-	
-
-
-
-	
-#include "ccall.h.S"
-
-	
-
-	
-	
-
-	
-
-
-
-
-
-
-
-	.DATA 2
-	Define_context Enviroment_context
-	.GLOBL Enviroment_context
-	.DATA
-.GLOBL Interpret_data
-	
-msg:	.asciz "%s "
-
+	## TODO: Use some more macros for changing state of VM
 	.MACRO Vm_push val
 		xchgl	%esp,	%esi 	# access parameter stack
 		pushl	%eax
 		mov	\val,%eax
 		xchgl	%esp,	%esi 	# access parameter stack
 	.ENDM
+	
 	.MACRO Vm_set_TOS val
 		mov	\val, %eax
 	.ENDM
+
+	.MACRO Call_abs addr
+		pushl	$1f				  # form call to XT
+		pushl 	\addr
+		ret
+	1:	
+	.ENDM
 	
-### TODO: Remove this ugly globals!
-Word_found:	.LONG 0
-Value_to_push:	.LONG 0
 Define_continuation_with_context Vm
 vm_loop:
 	C_Call_safe	Get_word
-	mov	$Token_buffer,	%ebx
+	mov		$Token_buffer,	%ebx
 	C_Call_edx	Find_word
-	orl	%edx,%edx
-	jnz	2f
+	orl		%edx,		%edx
+	jnz		not_literal
 ### We need to compile literal
-		Vm_push	%eax
+		Vm_push		%eax
 		C_Call_edx	Parse_literal
-		jz 	5f
-		Vm_set_TOS %edx		# jump if not literal
-		jmp	6f		# loop
-2:
+		jz 		word_not_found
+		Vm_set_TOS 	%edx		# jump if not literal
+		jmp		compile_literal		# loop
+not_literal:	
 ### We need to compile word
-
 	Vm_push	%edx
-	cmpl	$VM_STATE_COMPILING, var_state
-	jz	1f
-	cmpl	$VM_STATE_MACRO_COMPILING, var_state
-	jz	macro_compiling
-immediate:     
-       mov     WOFFS_EXECUTION_TOKEN(%edx), %edx # get the execution token
-#	mov	Word_semantics(%edx), %edx # get the execution token
-	jmp	4f
-1:
-	
-	mov	WOFFS_COMPILATION_TOKEN(%edx), %edx
-4:	
-	pushl	$3f				  # form call to XT
-	pushl 	%edx
-	ret
-3:	
-	# This is called in Get_key module, so if we run out of
-	# characters in the stream it will return to host
-#	Exit_continuation_ret	
+	movl	var_state,	%ecx
+	mov	Word_semantics(%edx,%ecx,4), %edx # get the execution token
+	Call_abs	%edx
 	jmp vm_loop
-5:
+word_not_found:	
 	Set_continuation_slot $WORD_NOT_FOUND_EXCEPTION, CNT_DX, Exception_data
 	Call_with_cc_with_context Exception
 	jmp vm_loop
 
-6: 
+compile_literal: 
 	cmpl	$VM_STATE_COMPILING, var_state
-	jnz	1f
-	call	wcode_literal
+	jnz	vm_loop
+		call	wcode_literal
 1:
 	jmp 	vm_loop
-macro_compiling:
-	xchgl	%esp,%esi	# access parameter stack
-	push	%eax		# push TOS
-	xchgl	%esp,%esi	# access call stack
-	call	wcode_literal
-	mov	%eax,%edx
- 	mov	WOFFS_COMPILATION_TOKEN(%edx), %edx
-	mov	%edx,%eax
-	subl	$Word_header_size,%eax
- 	pushl	$3f				  # form call to XT
- 	pushl 	%edx
- 	ret
-3:
-	jmp	vm_loop
 	
 Vm_interpret:
 	Vm_Save_context Enviroment_context
