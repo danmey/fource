@@ -57,7 +57,7 @@
 	.MACRO 	Defvar 		label, name_str, value
 		Defword	\label, \name_str
 		push	%eax
-		movl	var_\()\label,%eax
+		movl	$var_\()\label,%eax
 		Endword 
 var_\()\label:
 		.LONG 	\value

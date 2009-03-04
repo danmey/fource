@@ -14,6 +14,28 @@
 		add	%eax,(%esp)
 		pop	%eax
 	Endword
+
+	Defword minus, "-"
+		sub	%eax,(%esp)
+		pop	%eax
+	Endword
+
+	Defword dup, "dup"
+		push	%eax
+	Endword
+
+	Defword swap, "swap"
+		xchg	%eax, (%esp)
+	Endword
+
+	Defword rot, "rot"
+		pop	%ebx
+		pop	%ecx
+		push	%eax
+		push	%ecx
+		mov	%ebx,%eax
+	Endword
+
 	.GLOBL wcode_dot
 	
 	Defword dot, "."
@@ -97,6 +119,49 @@
 		ret
 	1:
 	 	xchg	%esi,%esp
+	Endword
+
+	Defword fetch,"@"
+		movl	(%eax),%eax
+	Endword
+
+
+	Defword branch_comma, "branch,", IMMEDIATE_WORD
+		pusha
+		mov	var_here, %edi
+		subl	$2,	%eax
+		Emit_branch_b
+		mov	%edi,var_here
+		popa
+		pop	%eax
+	Endword
+
+	Defword pushret, ">r"
+		xchg	%esi,%esp
+		push	%eax
+		xchg	%esi,%esp
+		pop	%eax
+	Endword
+
+	Defword drop, "drop"
+		pop	%eax
+	Endword
+
+	Defword popret, "r>"
+		push	%eax
+		xchg	%esi,%esp
+		pop	%eax
+		xchg	%esi,%esp
+	Endword
+
+	Defword branch0_comma, "branch0,", IMMEDIATE_WORD
+		pusha
+		mov	var_here, %edi
+		subl	$2,	%eax
+		Emit_branch0_b
+		mov	%edi,var_here
+		popa
+		pop	%eax
 	Endword
 
 	Defword slash,"\\", IMMEDIATE_WORD
