@@ -31,18 +31,21 @@
 		mov	\val,%eax
 		xchgl	%esp,	%esi 	# access parameter stack
 	.ENDM
-	
+
+	## Setting top of stack
 	.MACRO Vm_set_TOS val
 		mov	\val, %eax
 	.ENDM
 
+	## Calling absolute address
 	.MACRO Call_abs addr
 		pushl	$1f				  # form call to XT
 		pushl 	\addr
 		ret
 	1:	
 	.ENDM
-	
+
+### This is our continuation, in case of EOF we escape from the conitunation
 Define_continuation_with_context Vm
 vm_loop:
 	C_Call_safe	Get_word
@@ -87,10 +90,7 @@ Vm_interpret:
 	
 Continuation_entry Vm_Entry_point, Vm, Vm_data
 
-
-	
-		
-.GLOBL	Find_word
+# TODO: Make general macro for definition of procedures
 # TODO: Make it case insensitive
 Find_word:
  	movl	var_last,	%edx
