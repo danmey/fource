@@ -86,7 +86,7 @@
 		mov	%edi, var_here
 		pop	%eax
 	Endword
-	Defword exit_comma,"exit,"
+	Defword exit_comma,"exit,",IMM
 		pusha
 		movl	$(Epilog_code_end-Epilog_code),%ecx
 		movl	$Epilog_code,	%esi
@@ -174,7 +174,7 @@
 		push	%eax		# push TOS
 		mov	%edx,	%eax	# set TOS to value of literal
 		xchg	%esi,%esp
-		mov	WOFFS_COMPILATION_TOKEN(%edx), %edx
+		mov	$wcode_compile, %edx
 		pushl	$2f				  # form call to XT
 		pushl 	%edx
 		ret
@@ -187,7 +187,7 @@
 #		xchg	%esi,%esp
 	Endword
 
-	Defword immediate,"immediate"
+	Defword immediate,"immediate", IMM
 		movl	var_last,%edx
 		movl	$wcode_execute,WOFFS_COMPILATION_TOKEN(%edx)
 	Endword

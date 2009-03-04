@@ -31,7 +31,7 @@
 		.IFB \token
 		.LONG wcode_compile
 		.ELSE
-		.LONG \token
+		.LONG wcode_execute
 		.ENDIF
 #		.LONG		wcode_compile # meta compile
 	wcode_\label:

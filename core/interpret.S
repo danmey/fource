@@ -99,8 +99,6 @@ vm_loop:
 ### We need to compile word
 
 	Vm_push	%edx
-       cmpl    $wcode_execute, WOFFS_COMPILATION_TOKEN(%edx)
-       jz      immediate
 	cmpl	$VM_STATE_COMPILING, var_state
 	jz	1f
 	cmpl	$VM_STATE_MACRO_COMPILING, var_state
