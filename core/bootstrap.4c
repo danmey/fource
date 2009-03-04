@@ -1,7 +1,5 @@
-create : ] create \ ] exit, [
-create ; ] \ [ \ exit,  exit, [ immediate
+create : ] create \ ] [ exit,
+create ; ] \ [ \ exit, [ exit, immediate
 
-: test 3 + + . ;
-
-2 2 test
-
+create test ] 2 2 . . exit, [
+: test2 2 2 . . ;

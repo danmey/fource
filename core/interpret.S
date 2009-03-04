@@ -99,10 +99,8 @@ vm_loop:
 ### We need to compile word
 
 	Vm_push	%edx
-
-       cmpl    $IMMEDIATE_WORD, WOFFS_FLAGS(%edx)
+       cmpl    $wcode_execute, WOFFS_COMPILATION_TOKEN(%edx)
        jz      immediate
-
 	cmpl	$VM_STATE_COMPILING, var_state
 	jz	1f
 	cmpl	$VM_STATE_MACRO_COMPILING, var_state
@@ -128,23 +126,12 @@ immediate:
 	Call_with_cc_with_context Exception
 	jmp vm_loop
 
-6:
+6: 
 	cmpl	$VM_STATE_COMPILING, var_state
 	jnz	1f
 	call	wcode_literal
 1:
-	cmpl	$VM_STATE_MACRO_COMPILING, var_state
-	jnz	1f
-	call	wcode_literal
-	xchgl	%esp,%esi	# access parameter stack
-	push	%eax
-	mov	$wstart_literal,%eax
-	xchgl	%esp,%esi	# access call stack
-	mov	$wstart_literal,%edx
-	push	$1f
-	pushl	WOFFS_COMPILATION_TOKEN(%edx)
-	ret
-1:	jmp 	vm_loop
+	jmp 	vm_loop
 macro_compiling:
 	xchgl	%esp,%esi	# access parameter stack
 	push	%eax		# push TOS

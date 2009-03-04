@@ -56,14 +56,15 @@
 		# Get the body of the word
 		addl	$Word_header_size,%eax
 	Endword
-	Defword lsqbracket, "]",IMMEDIATE_WORD
+	
+	Defword lsqbracket, "]",wcode_execute
 		movl	$VM_STATE_COMPILING, var_state
 	Endword
 
-	Defword rqbracket, "[", IMMEDIATE_WORD
+	Defword rqbracket, "[",wcode_execute
 		movl	$VM_STATE_INTERPRETING, var_state
 	Endword
-	defword rbracket, ")", IMMEDIATE_WORD
+	defword rbracket, ")",wcode_execute
 		movl	$VM_STATE_MACRO_COMPILING, var_state
 	Endword
 	
@@ -85,7 +86,7 @@
 		mov	%edi, var_here
 		pop	%eax
 	Endword
-	Defword exit_comma,"exit,",  IMMEDIATE_WORD
+	Defword exit_comma,"exit,"
 		pusha
 		movl	$(Epilog_code_end-Epilog_code),%ecx
 		movl	$Epilog_code,	%esi
@@ -95,7 +96,7 @@
 		popa
 	Endword
 
-	Defword prolog,"prolog", IMMEDIATE_WORD
+	Defword prolog,"prolog",wcode_execute
 		pusha
 		movl	$(Prolog_code_end-Prolog_code),%ecx
 		movl	$Prolog_code,	%esi
@@ -126,7 +127,7 @@
 	Endword
 
 
-	Defword branch_comma, "branch,", IMMEDIATE_WORD
+	Defword branch_comma, "branch,",wcode_execute
 		pusha
 		mov	var_here, %edi
 		subl	$2,	%eax
@@ -154,7 +155,7 @@
 		xchg	%esi,%esp
 	Endword
 
-	Defword branch0_comma, "branch0,", IMMEDIATE_WORD
+	Defword branch0_comma, "branch0,",wcode_execute
 		pusha
 		mov	var_here, %edi
 		subl	$2,	%eax
@@ -164,7 +165,7 @@
 		pop	%eax
 	Endword
 
-	Defword slash,"\\", IMMEDIATE_WORD
+	Defword slash,"\\",wcode_execute
 		C_Call_safe	Get_word
 		mov	$Token_buffer, %ebx
 		C_Call_edx 	Find_word
@@ -186,7 +187,7 @@
 #		xchg	%esi,%esp
 	Endword
 
-	Defword immediate,"immediate",IMMEDIATE_WORD
+	Defword immediate,"immediate"
 		movl	var_last,%edx
 		movl	$wcode_execute,WOFFS_COMPILATION_TOKEN(%edx)
 	Endword
@@ -231,9 +232,9 @@
 	.data
 	.align	4
 Cells:
-	.FILL 32+8+8
+	.FILL 152
 .GLOBL First_word
-First_word:	
+First_word:
 	.FILL 1024*1024
 	
 Prolog_code:
