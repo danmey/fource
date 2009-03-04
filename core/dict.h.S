@@ -22,16 +22,16 @@
 		.SET 		nstart, .	# name into 32 bytes
 		.ASCIZ		"\name"	# store name
 	 	.FILL 		NAMESIZE - ( . - nstart )	# pad it
-		.LONG 	0
+		.LONG 		0		# 1 if it's hidden
  		.SET		Wprev, wstart_\label	# update prev label
 		.SET		Word_semantics, . - wstart_\label
 		.GLOBL		Word_semantics
 		.GLOBL		wcode_execute
 		.LONG		wcode_execute
 		.IFB \token
-		.LONG wcode_compile
+			.LONG wcode_compile
 		.ELSE
-		.LONG wcode_execute
+			.LONG wcode_execute
 		.ENDIF
 #		.LONG		wcode_compile # meta compile
 	wcode_\label:

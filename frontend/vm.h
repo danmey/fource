@@ -19,6 +19,7 @@ typedef struct
 {
   Vm_Context_t context;
   int id;
+  char* word_name;
 } Vm_Exception_t;
 
 

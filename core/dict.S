@@ -211,7 +211,7 @@
 		stosb
 		dec	%ecx
 		jnz	1b
-		xorl	%eax,%eax
+		movl	$1,%eax
 		stosl
 		movl	$wcode_execute,%eax
 		stosl
@@ -225,6 +225,11 @@
 		mov	%edi,var_last
 		popa
 		xchg	%esi,%esp
+	Endword
+
+	Defword store, "!"
+		pop	(%eax)
+		pop	%eax
 	Endword
 	
 	Defvar  base, "base", 10

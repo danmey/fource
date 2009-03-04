@@ -31,6 +31,7 @@
 		field	exc_stack_ptr, 4
 		field	exc_ret_stack_ptr, 4
 		field	exc_id, 4
+		field 	exc_word_name,4
 		field 	ext_size, 0
 	End_struct
 
@@ -61,6 +62,8 @@ exception_loop:
 	leal	CNT_RET_STACK(%ebx),	%eax
 	stosl
 	popl	%eax
+	stosl
+	movl	$Token_buffer,%eax
 	stosl
 	## Call our handler routine
 ### 	Vm_Save_context_reg 	%ebp, CNT_CONTEXT

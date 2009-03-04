@@ -92,6 +92,7 @@ Continuation_entry Vm_Entry_point, Vm, Vm_data
 
 # TODO: Make general macro for definition of procedures
 # TODO: Make it case insensitive
+	.GLOBL Find_word
 Find_word:
  	movl	var_last,	%edx
 next:
@@ -102,6 +103,8 @@ next:
 	repe	cmpsb
 	or	%ecx,	%ecx
 	jnz	not_found
+	cmp	$1, 36(%edx)
+	jz	not_found
 	mov	%edx,	%eax
 	ret
 not_found:
