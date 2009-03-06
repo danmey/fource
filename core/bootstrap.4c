@@ -1,12 +1,11 @@
 create : 
        0 last @ 36 + !
        \ create
-       \ last \ @
        \ ] exit,
 
 create ; 
        0 last @ 36 + !
-       36 literal \ + 
+       \ last \ @ 36 literal \ + 
        0 literal \ swap
        \ !
        \ [ \ exit,
@@ -16,5 +15,5 @@ create ;
 : 0= 0 = ;
 
 
-: a  branch, [ -2 c, ] ;
+: a  branch, [ -2 c, -2 ] ;
 a
