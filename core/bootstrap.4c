@@ -14,6 +14,9 @@ create ;
 : here here @ ;
 : 0= 0 = ;
 
-
+: begin here ; immediate  
+: while \ 0branch, here c, ; immediate
+: repeat dup here - c! \ branch, here 2 - c, ; immediate
+: b begin 1 while 1 . repeat ;
 : a  branch, [ -2 c, -2 ] ;
-a
+

@@ -6,10 +6,13 @@
 	
 .data
 	Defvar state, "state", VM_STATE_INTERPRETING
+
 	# Pointer to last word
 	Defvar here, "here", Cells
+	Defvar  base, "base", 10
 	## We use subroutine threading and TOS optimizations
 	## %esi contain our parameter stack and %eax TOS
+
 	Defword plus, "+"
 		add	%eax,(%esp)
 		pop	%eax
@@ -64,6 +67,7 @@
 	Defword rqbracket, "[",	$wcode_execute
 		movl	$VM_STATE_INTERPRETING, var_state
 	Endword
+
 	defword rbracket, ")",wcode_execute
 		movl	$VM_STATE_MACRO_COMPILING, var_state
 	Endword
@@ -80,12 +84,14 @@
 
 	Endword
 	.GLOBL wcode_literal
+
 	Defword literal, "literal"
 		mov	var_here,%edi
 		Emit_literal	%eax
 		mov	%edi, var_here
 		pop	%eax
 	Endword
+
 	Defword exit_comma,"exit,",IMM
 		pusha
 		movl	$(Epilog_code_end-Epilog_code),%ecx
@@ -95,12 +101,14 @@
 		movl	%edi, var_here
 		popa
 	Endword
+
 	Defword comma, ","
 		mov	var_here,%edi
 		stosl
 		mov	%edi,var_here
 		pop	%eax
 	Endword
+
 	Defword char_comma, "c,"
 		pusha
 		mov	var_here,	%edi
@@ -109,15 +117,7 @@
 		popa
 		pop	%eax
 	Endword
-	Defword prolog,"prolog",wcode_execute
-		pusha
-		movl	$(Prolog_code_end-Prolog_code),%ecx
-		movl	$Prolog_code,	%esi
-		movl	var_here,	%edi	
-		rep	movsb
-		movl	%edi, var_here
-		popa
-	Endword
+
 	Defword sp_fetch, "sp@"
 		push	%eax
 		mov	%esp,%eax
@@ -138,7 +138,6 @@
 	Defword fetch,"@"
 		movl	(%eax),%eax
 	Endword
-
 
 	Defword branch_comma, "branch,",wcode_execute
 		pusha
@@ -195,7 +194,6 @@
 		Call_with_cc_with_context Exception
 2:	
 		xchg	%esi,%esp
-#		xchg	%esi,%esp
 	Endword
 
 	Defword immediate,"immediate", IMM
@@ -228,9 +226,6 @@
 		stosl
 		movl	$wcode_compile,%eax
 		stosl
-		## movl	$(Test_code_end-Test_code),%ecx
-		## movl	$Test_code,	%esi
-		## rep	movsb
 		movl	%edi,	var_here
 		pop	%edi
 		mov	%edi,var_last
@@ -242,9 +237,11 @@
 		pop	(%eax)
 		pop	%eax
 	Endword
-	Defword forth_not, "not"
+
+	Defword invert, "invert"
 		not	%eax
 	Endword
+
 	Defword equals, "="
 		cmp	%eax,(%esp)
 		pop	%eax
@@ -253,11 +250,12 @@
 		xor	%eax,%eax
 	1:	
 	Endword
+	
 	Defword key, "key"
 		push	%eax
 		C_Call_ret_safe	Get_key
 	Endword
-	Defvar  base, "base", 10
+	
 	Defvar last, "last", wstart_last
 	.data
 
