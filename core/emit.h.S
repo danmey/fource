@@ -42,16 +42,20 @@
 	.MACRO Emit_branch_b 
 	// Store op-code for call
 		EmitB	%edi,	$0xEB
+
 //		EmitB	%edi, $-2
 	.ENDM
 
 	.MACRO Emit_branch0_b 
 	// Store op-code for call
+		EmitB	%edi, $0x87 # xchg %esp,%esi
+		EmitB	%edi, $0xe6 #
 		EmitB	%edi, $0x09
 		EmitB	%edi, $0xC0
 		EmitB	%edi, $0x58
-		EmitB	%edi, $0x75
-		EmitB	%edi, %al
+		EmitB	%edi, $0x87 # xchg %esp,%esi
+		EmitB	%edi, $0xe6 #
+		EmitB	%edi, $0x74
 	.ENDM
 
 #endif

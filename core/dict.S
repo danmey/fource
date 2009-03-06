@@ -139,14 +139,6 @@
 		movl	(%eax),%eax
 	Endword
 
-	Defword branch_comma, "branch,",wcode_execute
-		pusha
-		mov	var_here, %edi
-		Emit_branch_b
-		mov	%edi,var_here
-		popa
-	Endword
-
 	Defword pushret, ">r"
 		xchg	%esi,%esp
 		push	%eax
@@ -165,11 +157,25 @@
 		xchg	%esi,%esp
 	Endword
 
-	Defword branch0_comma, "branch0,",wcode_execute
+	
+	Defword branch_comma, "branch,",wcode_execute
 		pusha
 		mov	var_here, %edi
-		subl	$2,	%eax
+		Emit_branch_b
+		dec	%eax	# adjust for jmp byte code and jmp
+		dec	%eax	
+		EmitB	%edi,%al
+		mov	%edi,var_here
+		popa
+		pop	%eax
+	Endword
+
+	Defword branch0_comma, "0branch,",wcode_execute
+		pusha
+		mov	var_here, %edi
 		Emit_branch0_b
+		subl	$9,%eax	# adjust for jmp byte code and jmp
+		EmitB	%edi,%al
 		mov	%edi,var_here
 		popa
 		pop	%eax
@@ -238,6 +244,12 @@
 		pop	%eax
 	Endword
 
+	Defword char_store, "c!"
+		pop	%ecx
+		mov	%cl,(%eax)
+		pop	%eax
+	Endword
+
 	Defword invert, "invert"
 		not	%eax
 	Endword
@@ -264,8 +276,9 @@
 .GLOBL Cells
 Cells:
 1:	
-	jmp	1b
-	jmp 	1f
+	or	%eax,%eax
+	pop	%eax
+	jz	1f
 1:	
 	.FILL 1024*1024
 	
@@ -275,6 +288,7 @@ Prolog_code_end:
 
 Epilog_code:
 #	xchg	%esp,	%esi
+	
 	ret
 Epilog_code_end:
 
