@@ -22,7 +22,7 @@
 		.SET 		nstart, .	# name into 32 bytes
 		.ASCIZ		"\name"	# store name
 	 	.FILL 		NAMESIZE - ( . - nstart )	# pad it
-		.LONG 		0		# 1 if it's hidden
+		.LONG 		0		# 1 if it
  		.SET		Wprev, wstart_\label	# update prev label
 		.SET		Word_semantics, . - wstart_\label
 		.GLOBL		Word_semantics

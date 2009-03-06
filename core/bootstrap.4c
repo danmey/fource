@@ -13,4 +13,8 @@ create ;
        exit, immediate
 
 : here here @ ;
-: begin here
+: 0= 0 = ;
+
+
+: a  branch, [ -2 c, ] ;
+a

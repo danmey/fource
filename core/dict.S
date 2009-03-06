@@ -57,11 +57,11 @@
 		addl	$Word_header_size,%eax
 	Endword
 	
-	Defword lsqbracket, "]",wcode_execute
+	Defword lsqbracket, "]", $wcode_execute
 		movl	$VM_STATE_COMPILING, var_state
 	Endword
 
-	Defword rqbracket, "[",wcode_execute
+	Defword rqbracket, "[",	$wcode_execute
 		movl	$VM_STATE_INTERPRETING, var_state
 	Endword
 	defword rbracket, ")",wcode_execute
@@ -95,7 +95,20 @@
 		movl	%edi, var_here
 		popa
 	Endword
-
+	Defword comma, ","
+		mov	var_here,%edi
+		stosl
+		mov	%edi,var_here
+		pop	%eax
+	Endword
+	Defword char_comma, "c,"
+		pusha
+		mov	var_here,	%edi
+		stosb
+		mov 	%edi,var_here
+		popa
+		pop	%eax
+	Endword
 	Defword prolog,"prolog",wcode_execute
 		pusha
 		movl	$(Prolog_code_end-Prolog_code),%ecx
@@ -130,11 +143,9 @@
 	Defword branch_comma, "branch,",wcode_execute
 		pusha
 		mov	var_here, %edi
-		subl	$2,	%eax
 		Emit_branch_b
 		mov	%edi,var_here
 		popa
-		pop	%eax
 	Endword
 
 	Defword pushret, ">r"
@@ -231,15 +242,33 @@
 		pop	(%eax)
 		pop	%eax
 	Endword
-	
+	Defword forth_not, "not"
+		not	%eax
+	Endword
+	Defword equals, "="
+		cmp	%eax,(%esp)
+		pop	%eax
+		mov	$-1,%eax
+		jz	1f
+		xor	%eax,%eax
+	1:	
+	Endword
+	Defword key, "key"
+		push	%eax
+		C_Call_ret_safe	Get_key
+	Endword
 	Defvar  base, "base", 10
 	Defvar last, "last", wstart_last
 	.data
-	.align	4
+
+.align	4
+	.align 32
+.GLOBL Cells
 Cells:
-	.FILL 152
-.GLOBL First_word
-First_word:
+1:	
+	jmp	1b
+	jmp 	1f
+1:	
 	.FILL 1024*1024
 	
 Prolog_code:

@@ -79,6 +79,19 @@ word_end2:
 exit_func:
 	movl	%esi, Input_stream
 	ret
+.GLOBL Get_key
+
+Get_key:
+	xor	%eax,%eax
+	movl	Input_stream, 	%esi
+	lodsb
+	or	%eax,%eax
+	jnz 	1f
+	Exit_continuation_ret
+	jmp	Get_key
+1:
+	movl	%esi, Input_stream
+	ret
 	
 word_end_fail:
 	## TODO: Correct to get it work again

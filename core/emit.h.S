@@ -15,7 +15,7 @@
 	.MACRO EmitDW 	reg, b
 		movl	\b,	(\reg)
 		addl	$4,	\reg
-	.ENDM
+ 	.ENDM
 
 
 
@@ -42,7 +42,7 @@
 	.MACRO Emit_branch_b 
 	// Store op-code for call
 		EmitB	%edi,	$0xEB
-		EmitB	%edi, %al
+//		EmitB	%edi, $-2
 	.ENDM
 
 	.MACRO Emit_branch0_b 
@@ -50,7 +50,7 @@
 		EmitB	%edi, $0x09
 		EmitB	%edi, $0xC0
 		EmitB	%edi, $0x58
-		EmitB	%edi,	$0x75
+		EmitB	%edi, $0x75
 		EmitB	%edi, %al
 	.ENDM
 
