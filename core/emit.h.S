@@ -1,6 +1,9 @@
 #ifndef _EMIT_H_S
 #define _EMIT_H_S
 
+	## TODO: Could that module be just harcoded in Forth? I see no point keeping that here!
+	## (At least for branching words, rest is OK)
+	
 	# Emit a byte into memory pointed by register
 	.MACRO EmitB reg, b
 		movb	\b,	(\reg)

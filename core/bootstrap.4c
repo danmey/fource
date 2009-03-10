@@ -13,11 +13,18 @@ create ;
 
 : here here @ ;
 : 0= 0 = ;
-
+: cr 10 emit ;
+: u> u< invert ;
+: c+! dup c@ 
 : begin here ; immediate  
-: while \ 0branch, here c, ; immediate
-: repeat dup here - c! \ branch, here 2 - c, ; immediate
-: b [ here ] 0 . 0 [ here - ] 0branch,  ;
-: a  branch, [ -2 c, -2 ] ;
-b
+: until here - \ 0branch, ; immediate
 
+: while 0 \ 0branch, here  ; immediate
+: repeat here - \ branch, dup swap here - swap 1 - c@    ; immediate
+
+: test-FUCKIN-loop [ here ] 0 . 0 [ here - ] 0branch,  ;
+: b 0 begin 1 + dup 4 u< while dup . cr repeat ;
+
+: a 0 begin dup . cr 1 + dup 4 u> until ;
+
+b

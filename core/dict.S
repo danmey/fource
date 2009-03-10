@@ -23,6 +23,11 @@
 		pop	%eax
 	Endword
 
+	Defword star, "*"
+		pop	%ebx
+		imul	%ebx,%eax
+	Endword
+
 	Defword dup, "dup"
 		push	%eax
 	Endword
@@ -181,6 +186,16 @@
 		pop	%eax
 	Endword
 
+
+	Defword below, "u<"
+		cmp	%eax,(%esp)
+		pop	%eax
+		mov	$-1,%eax
+		jb	1f
+		xor	%eax,%eax
+	1:	
+	Endword
+
 	Defword slash,"\\",wcode_execute
 		C_Call_safe	Get_word
 		mov	$Token_buffer, %ebx
@@ -267,7 +282,12 @@
 		push	%eax
 		C_Call_ret_safe	Get_key
 	Endword
-	
+
+	Defword emit, "emit"
+		C_Call_safe 	putchar,%eax
+		pop	%eax
+	Endword
+
 	Defvar last, "last", wstart_last
 	.data
 
