@@ -151,6 +151,16 @@
 	9:	
  	.ENDM
 
+	.MACRO Call_with_cc_reg cont, data
+		Vm_Save_context_reg 	%ebp, CNT_CONTEXT
+ 		movl	$9f,	CNT_IP(%ebp)
+ 		pushl	%ebp
+		pushl	\data
+		pushl	$\cont
+		ret
+	9:	
+ 	.ENDM
+
 ### ###########################################################################
 ### Return from continuatiom
 	.MACRO Exit_continuation_ret 
@@ -199,6 +209,10 @@ Define_continuation_context Dummy
 		movl	\value, (\data+\slot)
 	.ENDM
 
+	.MACRO Set_continuation_slot_reg value, slot, reg
+		movl	\value, \slot(\reg)
+	.ENDM
+
 	.MACRO Define_continuation_with_context name
 		Define_continuation_context \name\()_data
 		Define_continuation \name
@@ -206,6 +220,10 @@ Define_continuation_context Dummy
 
 	.MACRO Call_with_cc_with_context name
 		Call_with_cc \name, \name\()_data
+	.ENDM
+	
+	.MACRO Call_with_cc_with_context_reg name, reg
+		Call_with_cc_reg \name, \name\()_data(\reg)
 	.ENDM
 
 #endif

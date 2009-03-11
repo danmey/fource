@@ -9,7 +9,18 @@
 //void  Vm_reset    (void);
 
 
+#include "const.h"
 
+extern char Dictionary_start;
+extern char var_here;
+extern char Fmt_dec;
+extern char Fmt_hex;
+extern char Get_key;
+extern char Get_word;
+extern char Find_word;
+extern char Token_buffer;
+extern char Exception_data;
+extern char Exception;
 
 /* FIX: refactored by (JO) */
 #define PANIC(_rcode,...) ( {fprintf(stderr, "Fatal: "); fprintf(stderr, __VA_ARGS__ ) ; exit(_rcode); })
@@ -71,31 +82,30 @@ int kernel_exception_handler(Vm_Exception_t* ex)
 
 extern Vm_Exception_handler_t Vm_Exception_handler;
 extern void Vm_interpret(char *);
+statuc char new_buffer[1024*1024*5];
 int main()
 {
-  /*
-  void* lib = dlopen("./libfource.so",RTLD_LAZY);
-  if ( lib == NULL )
-    {
-      char* dlError = dlerror();
-      printf("error loading dll: %s\n", dlError);
-      exit(1);
-    }
-  Vm_Exception_handler = dlsym(lib, "Vm_Exception_handler");
-  Vm_interpret = dlsym(lib, "Vm_interpret");
-  printf("%x\n", Vm_interpret);
-  */
-    char line[257];
+  unsigned int* reloc = (unsigned int**)&Dictionary_start;
+
+  reloc[rFmt_dec/4] = &Fmt_dec;
+  reloc[rFmt_hex/4] = &Fmt_hex;
+  reloc[rGet_key/4] = &Get_key;
+  reloc[rGet_word/4] = &Get_word;
+  reloc[rFind_word/4] = &Find_word;
+  reloc[rToken_buffer/4] = &Token_buffer;
+  reloc[rException_data/4] = &Exception_data;
+  reloc[rException/4]  = &Exception;
+  char line[257];
     //printf("%x\n", &Vm_Exception_handler);
-    Vm_Exception_handler = &kernel_exception_handler;
-    //    while( EOF != scanf("%s\n", line) )
-        while( EOF != just_one_line(stdin, 256, line) )
-	{
-	  Vm_interpret(line);
-	    //      puts("ala");
-	    //      if ( word != NULL )
-	    //	puts(word);
-	    //
-	}
+  Vm_Exception_handler = &kernel_exception_handler;
+  //    while( EOF != scanf("%s\n", line) )
+  while( EOF != just_one_line(stdin, 256, line) )
+    {
+      Vm_interpret(line);
+      //      puts("ala");
+      //      if ( word != NULL )
+      //	puts(word);
+     //
+    }
     return 0;
 }

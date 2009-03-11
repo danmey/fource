@@ -3,8 +3,24 @@
 #include "ccall.h.S"
 #include "continuation.h.S"
 #include "emit.h.S"
-	
+#include "reloc.h.S"
 .data
+
+
+	.GLOBL 	Dictionary_start
+	.GLOBL 	Reloc_start
+	.GLOBL	var_here
+Dictionary_start:
+Reloc_start:
+	.LONG	0 
+	.LONG	0 
+	.LONG	0 
+	.LONG	0 
+	.LONG	0 
+	.LONG	0 
+	.LONG	0 
+	.LONG	0 
+	
 	Defvar state, "state", VM_STATE_INTERPRETING
 
 	# Pointer to last word
@@ -47,14 +63,15 @@
 	.GLOBL wcode_dot
 	
 	Defword dot, "."
+		Load_reloc %ecx
 		cmpl	$10, var_base
 		jnz 	1f
-			C_Call_safe printf,%eax,$Fmt_dec
+			C_Call_safe printf,%eax,rFmt_dec(%ecx)
 			jmp	2f
 	1:
 		cmp	$16, var_base
 		jnz 	2f
-			C_Call_safe printf,%eax,$Fmt_hex_
+			C_Call_safe printf,%eax,rFmt_hex(%ecx)
 			jmp	2f
 	2:
 		pop	%eax
@@ -106,6 +123,9 @@
 		movl	%edi, var_here
 		popa
 	Endword
+Epilog_code:
+	ret
+Epilog_code_end:
 
 	Defword comma, ","
 		mov	var_here,%edi
@@ -133,7 +153,9 @@
 		mov	%eax,	%edx
 		pop	%eax
 		xchg	%esi,	%esp
-		pushl	$1f
+		Reloc	%ecx
+		add	$1f,	%ecx
+		push	%ecx
 		push	%edx
 		ret
 	1:
@@ -197,22 +219,28 @@
 	Endword
 
 	Defword slash,"\\",wcode_execute
-		C_Call_safe	Get_word
-		mov	$Token_buffer, %ebx
-		C_Call_edx 	Find_word
+		Load_reloc	%ecx
+		C_Call_safe	*rGet_word(%ecx)
+		mov	rToken_buffer(%ecx), %ebx
+		C_Call_edx 	*rFind_word(%ecx)
 		orl	%edx,%edx
 		jz	1f
 		push	%eax		# push TOS
 		mov	%edx,	%eax	# set TOS to value of literal
 		xchg	%esi,%esp
 		mov	$wcode_compile, %edx
-		pushl	$2f				  # form call to XT
+		Reloc	%ecx
+		add	$2f,	%ecx
+		pushl	%ecx				  # form call to XT
 		pushl 	%edx
 		ret
 		jmp	2f
 1:
-		Set_continuation_slot $WORD_TO_LONG_EXCEPTION, CNT_DX, Exception_data
-		Call_with_cc_with_context Exception
+		## Load_reloc 	%ecx
+		## mov	rException_data(%ecx),%ecx
+		## Set_continuation_slot_reg $WORD_TO_LONG_EXCEPTION, CNT_DX, %ecx
+		## Load_reloc 	%ecx
+		## Call_with_cc_with_context_reg rException, %ecx
 2:	
 		xchg	%esi,%esp
 	Endword
@@ -224,10 +252,11 @@
 
 	Defword create, "create"
 		xchg	%esi,%esp
-		C_Call_safe	Get_word
+		Load_reloc	%ecx
+		C_Call_safe	*rGet_word(%ecx)
 		pusha
 		movl	var_here,	%edi
-		movl	$Token_buffer,	%esi
+		movl	rToken_buffer(%ecx),	%esi
 		movl	var_last,%eax
 		push	%edi
 		stosl
@@ -280,7 +309,8 @@
 	
 	Defword key, "key"
 		push	%eax
-		C_Call_ret_safe	Get_key
+		Load_reloc %ecx
+		C_Call_ret_safe	*rGet_key(%ecx)
 	Endword
 
 	Defword emit, "emit"
@@ -289,36 +319,9 @@
 	Endword
 
 	Defvar last, "last", wstart_last
-	.data
-
-.align	4
-	.align 32
 .GLOBL Cells
 Cells:
-1:	
-	or	%eax,%eax
-	pop	%eax
-	jz	1f
-1:	
 	.FILL 1024*1024
-	
-Prolog_code:
-#	xchg	%esp,	%esi
-Prolog_code_end:	
-
-Epilog_code:
-#	xchg	%esp,	%esi
-	
-	ret
-Epilog_code_end:
-
-Test_code:
-	xchg	%esi,	%esp
-	push	%eax
-	mov	$123,%eax
-	xchg	%esi,	%esp
-	ret
-Test_code_end:
 
 	
 

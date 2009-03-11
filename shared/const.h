@@ -96,3 +96,11 @@
 #define WOFFS_FLAGS Word_flags
 
 
+#define	rFmt_dec	0
+#define rFmt_hex	4
+#define rGet_key 	8
+#define rGet_word 	12
+#define rFind_word 	16
+#define rToken_buffer 	20
+#define rException_data 24
+#define rException 	28
