@@ -8,7 +8,6 @@
 
 
 	
-	.DATA 1
 	.GLOBL
 _Image_start:	
 

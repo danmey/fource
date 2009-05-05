@@ -9,7 +9,6 @@
 	.GLOBL Vm_reset
 
 
-	.DATA
 
 
 	## Our enviroment context, TODO: Do we need that?
@@ -79,6 +78,7 @@ compile_literal:
 	jmp 	vm_loop
 	
 Vm_interpret:
+	call 	init_mem
 	Vm_Save_context Enviroment_context
 	push	%ebp
 	mov	%esp,%ebp

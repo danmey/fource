@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "vm.h"
-
+#include <sys/mman.h>
+#include <linux/errno.h>
 
 // char* Vm_interpret(const char* buffer);
 //void  Vm_reset    (void);
@@ -71,31 +72,29 @@ int kernel_exception_handler(Vm_Exception_t* ex)
 
 extern Vm_Exception_handler_t Vm_Exception_handler;
 extern void Vm_interpret(char *);
+extern char _Image_start;
+extern char _Image_end;
 int main()
 {
-  /*
-  void* lib = dlopen("./libfource.so",RTLD_LAZY);
-  if ( lib == NULL )
+  // Dirty hack !
+  printf("%x\n", &_Image_start);
+  printf("%x\n", &_Image_end);
+
+  if ( -1 == mprotect(&_Image_start,&_Image_end-&_Image_start,(PROT_READ | PROT_WRITE | PROT_EXEC)))
     {
-      char* dlError = dlerror();
-      printf("error loading dll: %s\n", dlError);
-      exit(1);
+      printf("Error: mprotect\n");
     }
-  Vm_Exception_handler = dlsym(lib, "Vm_Exception_handler");
-  Vm_interpret = dlsym(lib, "Vm_interpret");
-  printf("%x\n", Vm_interpret);
-  */
-    char line[257];
-    //printf("%x\n", &Vm_Exception_handler);
-    Vm_Exception_handler = &kernel_exception_handler;
-    //    while( EOF != scanf("%s\n", line) )
-        while( EOF != just_one_line(stdin, 256, line) )
-	{
-	  Vm_interpret(line);
+  char line[257];
+  //printf("%x\n", &Vm_Exception_handler);
+  Vm_Exception_handler = &kernel_exception_handler;
+  //    while( EOF != scanf("%s\n", line) )
+  while( EOF != just_one_line(stdin, 256, line) )
+    {
+      Vm_interpret(line);
 	    //      puts("ala");
 	    //      if ( word != NULL )
 	    //	puts(word);
 	    //
-	}
+    }
     return 0;
 }

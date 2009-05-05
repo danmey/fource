@@ -4,7 +4,6 @@
 #include "continuation.h.S"
 #include "emit.h.S"
 	
-.data
 	Defvar state, "state", VM_STATE_INTERPRETING
 
 	# Pointer to last word
@@ -289,7 +288,6 @@
 	Endword
 
 	Defvar last, "last", wstart_last
-	.data
 
 .align	4
 	.align 32

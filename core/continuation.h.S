@@ -80,7 +80,6 @@
 
 
 	.MACRO Define_continuation_context name
-		.DATA 2
 			.ALIGN	32
 			.LCOMM	\name, CNT_SIZE
 	.ENDM
@@ -92,7 +91,6 @@
 ### Define the continuation 
 
 	.MACRO Define_continuation name
-		.DATA 1
 	\name:
 	## That's needed becaue of bug in GAS macros
 
@@ -181,7 +179,6 @@ Define_continuation_context Dummy
 ### Define the direct continuation call
 	.MACRO Continuation_entry name, cont, data
 	Define_context \name\()_context
-	.DATA 1
 	\name:
 		Vm_Save_context \name\()_context
  		movl	$9f,	(\data+CNT_EXIT)
