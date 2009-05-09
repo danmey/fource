@@ -5,7 +5,7 @@
 #include "vm.h"
 #include <sys/mman.h>
 #include <linux/errno.h>
-
+#include <sigsegv.h>
 // char* Vm_interpret(const char* buffer);
 //void  Vm_reset    (void);
 
@@ -70,6 +70,26 @@ int kernel_exception_handler(Vm_Exception_t* ex)
       }
 }
 
+int ss_handler(void* fault_address, int serious);
+void loop(void*p1, void*p2, void*p3)
+{
+  sigsegv_install_handler(ss_handler);
+  char line[257];
+  while( EOF != just_one_line(stdin, 256, line) )
+    {
+      Vm_interpret(line);
+    }
+}
+
+int ss_handler(void* fault_address, int serious)
+{
+  printf("***Exception: Segmentation fault %x %d\n", fault_address, serious);
+  return 1;
+}
+
+
+sigsegv_dispatcher ss_dispatcher;
+
 extern Vm_Exception_handler_t Vm_Exception_handler;
 extern void Vm_interpret(char *);
 extern char _Image_start;
@@ -84,6 +104,8 @@ int main()
     {
       printf("Error: mprotect\n");
     }
+  sigsegv_init(&ss_dispatcher);
+  sigsegv_install_handler(ss_handler);
   char line[257];
   //printf("%x\n", &Vm_Exception_handler);
   Vm_Exception_handler = &kernel_exception_handler;
