@@ -53,10 +53,9 @@ vm_loop:
 	orl		%edx,		%edx
 	jnz		not_literal
 ### We need to compile literal
-		Vm_push		%eax
 		C_Call_edx	Parse_literal
 		jz 		word_not_found
-		Vm_set_TOS 	%edx		# jump if not literal
+		Vm_push		%edx
 		jmp		compile_literal		# loop
 not_literal:	
 ### We need to compile word

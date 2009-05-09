@@ -2,7 +2,7 @@
 #include "module.h.S"	
 
 Module_start
-	.LCOMM Vm_Exception_handler,4
+	Vm_alloc Vm_Exception_handler,4
 
 
 	
@@ -35,7 +35,7 @@ Module_start
 	End_struct
 
 	.TEXT
-	.LCOMM Vm_Exception_context, ext_size
+	Vm_alloc Vm_Exception_context, ext_size
 
 Msg_Exception_handler_not_def:
 	.asciz "*Error: Uncought Fource kernel exception!\n"

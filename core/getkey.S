@@ -11,10 +11,10 @@
 	.GLOBL
 _Image_start:	
 
-		.LCOMM Token_buffer, 32
 		Define_context Vm_context
 	Input_stream:	.LONG	0
 	fmt_str:	.ASCIZ "%s "
+	Vm_alloc 	Token_buffer, 32
 
 	
 	

@@ -11,7 +11,7 @@
 	
 	.MACRO Define_context context
 		.ALIGN	32
-		.LCOMM 	\context, 32+4
+		Vm_alloc 	\context, 32+4
 	.ENDM
 	
 	.MACRO Vm_Save_context context
@@ -57,6 +57,9 @@ Reg_ESP:	.LONG 0
 		movl	Reg_ESP,%esp
 	.ENDM
 
+	.MACRO Vm_alloc lab, bytes
+		\lab:	.FILL \bytes
+	.ENDM
 
 
 #endif

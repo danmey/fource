@@ -81,7 +81,7 @@
 
 	.MACRO Define_continuation_context name
 			.ALIGN	32
-			.LCOMM	\name, CNT_SIZE
+			Vm_alloc	\name, CNT_SIZE
 	.ENDM
 
 
