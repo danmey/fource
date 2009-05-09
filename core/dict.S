@@ -199,7 +199,7 @@
 	1:	
 	Endword
 
-	Defword slash,"\\",wcode_execute
+	Defword slash,"postpone",wcode_execute
 		C_Call_safe	Get_word
 		mov	$Token_buffer, %ebx
 		C_Call_edx 	Find_word

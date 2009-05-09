@@ -43,6 +43,15 @@ Parse_literal:
 	pop	%edi
 	ret
 1:
+	cmpb	$'$',Token_buffer
+	jnz 	5f
+4:
+	C_Call_ret_safe sscanf,$_temp_long,$Fmt_hex, $(Token_buffer+1)
+	cmp	$0,%eax
+	mov 	_temp_long,%eax
+	pop	%edi
+	ret 
+5:	
 	cmpb	$10,var_base
 	jz	2f
 	C_Call_ret_safe sscanf,$_temp_long,$Fmt_hex, $Token_buffer

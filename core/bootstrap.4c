@@ -1,14 +1,14 @@
 create : 
        0 last @ 36 + !
-       \ create
-       \ ] exit,
+       postpone create
+       postpone ] exit,
 
 create ; 
        0 last @ 36 + !
-       \ last \ @ 36 literal \ + 
-       0 literal \ swap
-       \ !
-       \ [ \ exit,
+       postpone last postpone @ 36 literal postpone + 
+       0 literal postpone swap
+       postpone !
+       postpone [ postpone exit,
        exit, immediate
 
 : here here @ ;
@@ -17,14 +17,16 @@ create ;
 : u> u< invert ;
 
 : begin here ; immediate  
-: until here - \ 0branch, ; immediate
+: until here - postpone 0branch, ; immediate
 
-: while 0 \ 0branch, here  ; immediate
-: repeat here - \ branch, dup swap here - swap 1 - c@    ; immediate
+: while 0 postpone 0branch, here  ; immediate
+: repeat here - postpone branch, dup swap here - swap 1 - c@    ; immediate
 
-: test-FUCKIN-loop [ here ] 0 . 0 [ here - ] 0branch,  ;
-: b 0 begin 1 + dup 4 u< while dup . cr repeat ;
+: \ begin key 10 = until ; immediate
+\ Line comments
 
-: a 0 begin dup . cr 1 + dup 4 u> until ;
+: Constant : literal postpone ; ;  immediate
 
-saveimage
+
+123 Constant woj
+
