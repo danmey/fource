@@ -8,8 +8,6 @@
 
 
 	
-	.GLOBL
-_Image_start:	
 
 		Define_context Vm_context
 	Input_stream:	.LONG	0

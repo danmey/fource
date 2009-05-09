@@ -25,7 +25,7 @@ extern char _Image_end;
 
 struct {
   int be_quiet;
-  void* image_file;
+  char* image_file;
 } opts;
   
 int
@@ -38,11 +38,11 @@ process_opts (int argc, char **argv)
     switch (c)
       {
       case 'i':
+	opts.image_file = optarg;
 	continue;
       default:
 	abort ();
       }
-  
   
   for (int index = optind; index < argc; index++)
     printf ("Non-option argument %s\n", argv[index]);
@@ -65,6 +65,14 @@ install_exception_handler(Vm_Exception_handler_t handler)
   Vm_Exception_handler = handler;
 }
 
+void 
+load_image(const char* file_name)
+{
+  FILE* f = fopen(file_name, "rb");
+  if ( f == 0 ) abort();
+  fread(&_Image_start, 1, &_Image_end - &_Image_start, f);
+  fclose(f);
+}
 
 /* TODO: Make it windows friendly... */
 /* VERY CLUMSY! */
@@ -119,11 +127,27 @@ int kernel_exception_handler(Vm_Exception_t* ex)
       }
 }
 
+
+void dump_image()
+{
+  FILE* f = fopen("image.fi", "wb");
+  fwrite(&_Image_start, &_Image_end - &_Image_start, 1, f);
+  fclose(f);
+}
+
+extern int Vm_Save_image;
 void run_repl()
 {
   static char line[257];
   while( EOF != just_one_line(stdin, 256, line) )
+    {
       Vm_interpret(line);
+      if ( Vm_Save_image ) 
+	{
+	  Vm_Save_image = 0;
+	  dump_image();
+	}
+    }
 }
 
 // Promising, but need to find way of portable dealing with signals
@@ -151,15 +175,19 @@ int ss_handler(void* fault_address, int serious)
 
 */
 
-
 int main(int argc, void* argv)
 {
   //  sigsegv_init(&ss_dispatcher);
   //  sigsegv_install_handler(ss_handler);
-   
-  process_opts(argc,argv);
+  printf("%x\n", &_Image_start);
+  printf("%x\n", &_Image_end);
+
   enable_memory_block(&_Image_start, &_Image_end);
+  process_opts(argc,argv);
   install_exception_handler(kernel_exception_handler);
+  if ( opts.image_file != 0 )
+    load_image(opts.image_file);
+
   run_repl();
   return 0;
 }

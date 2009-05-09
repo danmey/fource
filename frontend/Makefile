@@ -1,6 +1,7 @@
 
 bin/fource: *.c *.h ../bin/libfource-core.a
-	gcc  -L../bin -L/home/spec/libsigsegv-2.6/lib -I../shared -I/home/spec/libsigsegv-2.6/include -ldl -lfource-core -lsigsegv --std=c99 -ggdb3  -o bin/fource   *.c ../bin/libfource-core.a ../bin/libsigsegv.a
+	gcc  -L../bin -L/home/spec/libsigsegv-2.6/lib -I../shared -I/home/spec/libsigsegv-2.6/include -ldl -lfource-core -lsigsegv --std=c99 -ggdb3  -o bin/fource   *.c ../bin/libfource-core.a 
+# ../bin/libsigsegv.a
 
 
 # fource.img: save-image.c getkey.S exception.S interpret.S

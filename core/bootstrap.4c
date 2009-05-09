@@ -15,7 +15,7 @@ create ;
 : 0= 0 = ;
 : cr 10 emit ;
 : u> u< invert ;
-: c+! dup c@ 
+
 : begin here ; immediate  
 : until here - \ 0branch, ; immediate
 
@@ -27,4 +27,4 @@ create ;
 
 : a 0 begin dup . cr 1 + dup 4 u> until ;
 
-b
+saveimage

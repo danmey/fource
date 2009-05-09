@@ -139,8 +139,12 @@
 	 	xchg	%esi,%esp
 	Endword
 
-	Defword fetch,"@"
+ 	Defword fetch,"@"
 		movl	(%eax),%eax
+	Endword
+
+	Defword fetchb,"c@"
+		movzbl	(%eax),%eax
 	Endword
 
 	Defword pushret, ">r"
@@ -287,6 +291,16 @@
 		pop	%eax
 	Endword
 
+Vm_Save_image:	 .LONG 0
+	.GLOBL Vm_Save_image
+image_name:	.ASCIZ "image.fi"
+wb:	.ASCIZ "wb"
+	
+	Defword saveimage, "saveimage"
+	# dirty hack		
+		movl	$1,Vm_Save_image
+		Exit_continuation_ret
+	Endword
 	Defvar last, "last", wstart_last
 
 .align	4
@@ -317,6 +331,7 @@ Test_code:
 	xchg	%esi,	%esp
 	ret
 Test_code_end:
+
 
 	
 
