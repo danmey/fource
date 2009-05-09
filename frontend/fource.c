@@ -1,20 +1,69 @@
+#include "vm.h"
+
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "vm.h"
+#include <ctype.h>
+#include <unistd.h>
 #include <sys/mman.h>
 #include <linux/errno.h>
 #include <sigsegv.h>
-// char* Vm_interpret(const char* buffer);
-//void  Vm_reset    (void);
+#include <features.h>
+#include <getopt.h>
 
 
-
+extern Vm_Exception_handler_t Vm_Exception_handler;
+extern void Vm_interpret(char *);
+extern char _Image_start;
+extern char _Image_end;
 
 /* FIX: refactored by (JO) */
 #define PANIC(_rcode,...) ( {fprintf(stderr, "Fatal: "); fprintf(stderr, __VA_ARGS__ ) ; exit(_rcode); })
 #define FEAR(...) ({fprintf(stderr, "Warning: "); fprintf(stderr,  __VA_ARGS__ ); })
+
+
+struct {
+  int be_quiet;
+  void* image_file;
+} opts;
+  
+int
+process_opts (int argc, char **argv)
+{
+  char* image_file_name = NULL;
+  int opterr = 0;
+  int c = 0;
+  while ((c = getopt (argc, argv, "i:")) != -1)
+    switch (c)
+      {
+      case 'i':
+	continue;
+      default:
+	abort ();
+      }
+  
+  
+  for (int index = optind; index < argc; index++)
+    printf ("Non-option argument %s\n", argv[index]);
+  return 0;
+}
+
+void 
+enable_memory_block(void* start, void* end)
+{
+  if ( -1 == mprotect(start,end-start,(PROT_READ | PROT_WRITE | PROT_EXEC)))
+    {
+      printf("Error: mprotect\n");
+      exit(1);
+    }
+}
+
+void 
+install_exception_handler(Vm_Exception_handler_t handler)
+{
+  Vm_Exception_handler = handler;
+}
 
 
 /* TODO: Make it windows friendly... */
@@ -38,7 +87,7 @@ int just_one_line(FILE* f, int max_buffer, char* o_buffer)
 	    if ( ch != EOF )
 		{
 		    char msg[128];
-		    FEAR("Line exceeded %d characters. Truncated.",msg);
+		    FEAR("Line exceeded %d characters. Truncated.",nread);
 		    return -2;
 		}
 	}
@@ -70,9 +119,21 @@ int kernel_exception_handler(Vm_Exception_t* ex)
       }
 }
 
+void run_repl()
+{
+  static char line[257];
+  while( EOF != just_one_line(stdin, 256, line) )
+      Vm_interpret(line);
+}
+
+// Promising, but need to find way of portable dealing with signals
+/*
+sigsegv_dispatcher ss_dispatcher;
+
 int ss_handler(void* fault_address, int serious);
 void loop(void*p1, void*p2, void*p3)
 {
+  sigsegv_init(&ss_dispatcher);
   sigsegv_install_handler(ss_handler);
   char line[257];
   while( EOF != just_one_line(stdin, 256, line) )
@@ -84,39 +145,21 @@ void loop(void*p1, void*p2, void*p3)
 int ss_handler(void* fault_address, int serious)
 {
   printf("***Exception: Segmentation fault %x %d\n", fault_address, serious);
+  sigsegv_leave_handler(loop, 0,0,0);
   return 1;
 }
 
+*/
 
-sigsegv_dispatcher ss_dispatcher;
 
-extern Vm_Exception_handler_t Vm_Exception_handler;
-extern void Vm_interpret(char *);
-extern char _Image_start;
-extern char _Image_end;
-int main()
+int main(int argc, void* argv)
 {
-  // Dirty hack !
-  printf("%x\n", &_Image_start);
-  printf("%x\n", &_Image_end);
-
-  if ( -1 == mprotect(&_Image_start,&_Image_end-&_Image_start,(PROT_READ | PROT_WRITE | PROT_EXEC)))
-    {
-      printf("Error: mprotect\n");
-    }
-  sigsegv_init(&ss_dispatcher);
-  sigsegv_install_handler(ss_handler);
-  char line[257];
-  //printf("%x\n", &Vm_Exception_handler);
-  Vm_Exception_handler = &kernel_exception_handler;
-  //    while( EOF != scanf("%s\n", line) )
-  while( EOF != just_one_line(stdin, 256, line) )
-    {
-      Vm_interpret(line);
-	    //      puts("ala");
-	    //      if ( word != NULL )
-	    //	puts(word);
-	    //
-    }
-    return 0;
+  //  sigsegv_init(&ss_dispatcher);
+  //  sigsegv_install_handler(ss_handler);
+   
+  process_opts(argc,argv);
+  enable_memory_block(&_Image_start, &_Image_end);
+  install_exception_handler(kernel_exception_handler);
+  run_repl();
+  return 0;
 }
