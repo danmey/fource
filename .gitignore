@@ -6,4 +6,5 @@ fource
 .\#*
 *.so
 image
+*.fi
 *.a
