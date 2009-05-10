@@ -1,8 +1,8 @@
 #include "const.h"
-#include "dict.h.S"
-#include "ccall.h.S"
-#include "continuation.h.S"
-#include "emit.h.S"
+#include "dict.h"
+#include "ccall.h"
+#include "continuation.h"
+#include "emit.h"
 	
 	Defvar state, "state", VM_STATE_INTERPRETING
 
@@ -22,6 +22,23 @@
 		pop	%eax
 	Endword
 
+	Defword lshift, "lshift"
+		mov	%eax,%ecx
+		pop	%eax
+		shl	%cl, %eax
+	Endword
+
+	Defword rshift, "rshift"
+		mov	%eax,%ecx
+		pop	%eax
+		shr	%cl, %eax
+	Endword
+
+	Defword land, "and"
+		and	%eax,(%esp)
+		pop	%eax
+	Endword
+	
 	Defword star, "*"
 		pop	%ebx
 		imul	%ebx,%eax

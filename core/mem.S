@@ -1,4 +1,4 @@
-#include "ccall.h.S"
+#include "ccall.h"
 #define PROT_READ	0x1		/* Page can be read.  */
 #define PROT_WRITE	0x2		/* Page can be written.  */
 #define PROT_EXEC	0x4		/* Page can be executed.  */

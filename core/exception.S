@@ -1,5 +1,5 @@
-#include "continuation.h.S"	
-#include "module.h.S"	
+#include "continuation.h"	
+#include "module.h"	
 
 Module_start
 	Vm_alloc Vm_Exception_handler,4

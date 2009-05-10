@@ -1,7 +1,7 @@
 #include "const.h"			
-#include "context.h.S"			
-#include "continuation.h.S"			
-#include "ccall.h.S"
+#include "context.h"			
+#include "continuation.h"			
+#include "ccall.h"
 
 
 	## Exports

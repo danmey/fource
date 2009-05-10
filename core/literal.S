@@ -1,4 +1,4 @@
-#include "ccall.h.S"
+#include "ccall.h"
 
 .GLOBL Fmt_dec
 .GLOBL Fmt_hex
