@@ -1,12 +1,12 @@
 all:	
 	echo `test ! -e bin && mkdir bin` > /dev/null
-	make core frontend
+	make all
 .PHONY : all
 .PHONY : clean
 
 
 all: 
-	cd core && make
+	cd core && ./build.sh
 	cp core/bin/libfource-core.a bin/libfource-core.a
 	cd frontend && make && cp bin/* ../bin
 

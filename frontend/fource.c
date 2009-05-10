@@ -179,8 +179,8 @@ int main(int argc, void* argv)
 {
   //  sigsegv_init(&ss_dispatcher);
   //  sigsegv_install_handler(ss_handler);
-  printf("%x\n", &_Image_start);
-  printf("%x\n", &_Image_end);
+  printf("%x\n", (unsigned int)&_Image_start);
+  printf("%x\n", (unsigned int)&_Image_end);
 
   enable_memory_block(&_Image_start, &_Image_end);
   process_opts(argc,argv);
