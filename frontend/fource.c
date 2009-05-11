@@ -15,6 +15,7 @@
 #include <signal.h>
 
 sigset_t mainsigset;
+sigsegv_dispatcher ss_dispatcher;
 extern void Vm_reset(void);
 
 
@@ -169,18 +170,11 @@ void run_repl()
     }
 }
 
-// Promising, but need to find way of portable dealing with signals
-
-sigsegv_dispatcher ss_dispatcher;
-
-
 void
 handler_continuation (void *arg1, void *arg2, void *arg3)
 {
   longjmp (mainloop, 0);
 }
-
-
 
 int ss_handler(void* fault_address, int serious)
 {
@@ -189,8 +183,6 @@ int ss_handler(void* fault_address, int serious)
   return sigsegv_leave_handler (handler_continuation, NULL, NULL, NULL);
 }
  
-
-
 int main(int argc, void* argv)
 {
 sigset_t emptyset;
@@ -199,9 +191,6 @@ sigset_t emptyset;
 /* Save the current signal mask.  */
   sigemptyset (&emptyset);
   sigprocmask (SIG_BLOCK, &emptyset, &mainsigset);
-
-  printf("%x\n", (unsigned int)&_Image_start);
-  printf("%x\n", (unsigned int)&_Image_end);
 
   enable_memory_block(&_Image_start, &_Image_end);
   process_opts(argc,argv);
