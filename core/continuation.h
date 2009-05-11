@@ -205,5 +205,9 @@ Define_continuation_context Dummy
 		Call_with_cc \name, \name\()_data
 	.ENDM
 
+	.MACRO Reset_continuation continuation
+		movl	$0, 	(CNT_INIT+\continuation)
+	.ENDM
+
 #endif
 ### ifndef CONTINUATION_H_S

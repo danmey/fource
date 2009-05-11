@@ -1,16 +1,21 @@
 #include "vm.h"
 
+#include <sigsegv.h>
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <ctype.h>
-#include <unistd.h>
 #include <sys/mman.h>
 #include <linux/errno.h>
-#include <sigsegv.h>
 #include <features.h>
 #include <getopt.h>
+#include <stdlib.h> /* for abort, exit */
+#include <setjmp.h>
+
+#include <signal.h>
+
+sigset_t mainsigset;
+extern void Vm_reset(void);
 
 
 extern Vm_Exception_handler_t Vm_Exception_handler;
@@ -44,7 +49,8 @@ process_opts (int argc, char **argv)
 	abort ();
       }
   
-  for (int index = optind; index < argc; index++)
+  int index;
+  for ( index = optind; index < argc; index++)
     printf ("Non-option argument %s\n", argv[index]);
   return 0;
 }
@@ -135,50 +141,65 @@ void dump_image()
   fclose(f);
 }
 
+#include <setjmp.h>
+jmp_buf mainloop;
 extern int Vm_Save_image;
 void run_repl()
 {
-  static char line[257];
-  while( EOF != just_one_line(stdin, 256, line) )
+  switch (setjmp (mainloop))
     {
-      Vm_interpret(line);
-      if ( Vm_Save_image ) 
-	{
-	  Vm_Save_image = 0;
-	  dump_image();
-	}
+    case 0: case 1:
+      {
+	Vm_reset();
+	static char line[257];
+	while( EOF != just_one_line(stdin, 256, line) )
+	  {
+	    Vm_interpret(line);
+	    if ( Vm_Save_image ) 
+	      {
+		Vm_Save_image = 0;
+		dump_image();
+	      }
+	  }
+      case 2:
+	break;
+      default:
+	abort ();
+      }
     }
 }
 
 // Promising, but need to find way of portable dealing with signals
-/*
+
 sigsegv_dispatcher ss_dispatcher;
 
-int ss_handler(void* fault_address, int serious);
-void loop(void*p1, void*p2, void*p3)
+
+void
+handler_continuation (void *arg1, void *arg2, void *arg3)
 {
-  sigsegv_init(&ss_dispatcher);
-  sigsegv_install_handler(ss_handler);
-  char line[257];
-  while( EOF != just_one_line(stdin, 256, line) )
-    {
-      Vm_interpret(line);
-    }
+  longjmp (mainloop, 0);
 }
+
+
 
 int ss_handler(void* fault_address, int serious)
 {
-  printf("***Exception: Segmentation fault %x %d\n", fault_address, serious);
-  sigsegv_leave_handler(loop, 0,0,0);
-  return 1;
+  printf("***Exception: Segmentation fault %x %d\n", (unsigned int)fault_address, serious);
+  sigprocmask (SIG_SETMASK, &mainsigset, NULL);
+  return sigsegv_leave_handler (handler_continuation, NULL, NULL, NULL);
 }
+ 
 
-*/
 
 int main(int argc, void* argv)
 {
-  //  sigsegv_init(&ss_dispatcher);
-  //  sigsegv_install_handler(ss_handler);
+sigset_t emptyset;
+    //  sigsegv_init(&ss_dispatcher);
+  sigsegv_install_handler(ss_handler);
+/* Save the current signal mask.  */
+  sigemptyset (&emptyset);
+  sigprocmask (SIG_BLOCK, &emptyset, &mainsigset);
+
   printf("%x\n", (unsigned int)&_Image_start);
   printf("%x\n", (unsigned int)&_Image_end);
 

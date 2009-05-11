@@ -112,3 +112,10 @@ not_found:
 	jnz	next
 	xor	%eax,	%eax
 	ret
+
+	.GLOBL Vm_reset
+Vm_reset:	
+	Reset_continuation Vm
+	ret
+	
+	
