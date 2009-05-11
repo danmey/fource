@@ -178,7 +178,7 @@ handler_continuation (void *arg1, void *arg2, void *arg3)
 
 int ss_handler(void* fault_address, int serious)
 {
-  printf("***Exception: Segmentation fault %x %d\n", (unsigned int)fault_address, serious);
+  printf("***Exception: Memory referenced at %p\n", fault_address);
   sigprocmask (SIG_SETMASK, &mainsigset, NULL);
   return sigsegv_leave_handler (handler_continuation, NULL, NULL, NULL);
 }

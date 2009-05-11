@@ -1,4 +1,5 @@
 #include "image-tags/image-start.S"
+#include "vm_init.s"
 #include "interpret.S"
 #include "literal.S"
 #include "getkey.S"
