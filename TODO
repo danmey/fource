@@ -1,0 +1,6 @@
+Back trace
+Consistent exceptions
+setjmp rather then continuations?
+Stack overflow
+Separating core from interpreter
+Mixing C core with assembly in scope of the same image
