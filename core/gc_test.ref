@@ -1,0 +1,25 @@
+Running test 01
+**List of minor heap allocated 7 chunks
+	chunk 0000	size 252	marked n
+	chunk 0001	size 252	marked n
+	chunk 0002	size 248	marked n
+	chunk 0003	size 004	marked n
+	chunk 0004	size 004	marked n
+	chunk 0005	size 004	marked n
+	chunk 0006	size 008	marked n
+**End of chunks list
+Test 01 completed
+Running test 02
+**List of minor heap allocated 3 chunks
+	chunk 0000	size 004	marked y
+	chunk 0001	size 004	marked n
+	chunk 0002	size 004	marked y
+**End of chunks list
+Test 02 completed
+Running test 03
+**List of minor heap allocated 3 chunks
+	chunk 0000	size 004	marked y
+	chunk 0001	size 004	marked y
+	chunk 0002	size 004	marked y
+**End of chunks list
+Test 03 completed

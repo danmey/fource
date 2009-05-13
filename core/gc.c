@@ -31,7 +31,7 @@
 // The chunk structure
 typedef struct {
   unsigned int flags; 
-  void* bits[GC_MINOR_BITS_SIZE];
+  void* bits[GC_MINOR_BITS_SIZE/4];
 } minor_chunk_t;
 
 // Major chunk header
@@ -155,20 +155,36 @@ void gc_test_01()
 
 void gc_test_02()
 {
- printf("Running test 02\n");
- unsigned int* ptr1 = minor_alloc(4);
- unsigned int* ptr2 = minor_alloc(4);
- unsigned int* ptr3 = minor_alloc(4);
- void* refs[] = { ptr1, ptr3 };
- mark_minor(refs, 3 );
- gc_print_minor();
- printf("Test 02 completed\n");
+  printf("Running test 02\n");
+  unsigned int* ptr1 = minor_alloc(4);
+  unsigned int* ptr2 = minor_alloc(4);
+  unsigned int* ptr3 = minor_alloc(4);
+  void* refs[] = { ptr1, ptr3 };
+  mark_minor(refs, 2 );
+  gc_print_minor();
+  gc_reset();
+  printf("Test 02 completed\n");
 }
 
+void gc_test_03()
+{
+  printf("Running test 03\n");
+  unsigned int* ptr1 = minor_alloc(4);
+  unsigned int* ptr2 = minor_alloc(4);
+  unsigned int* ptr3 = minor_alloc(4);
+  void* refs[] = { ptr1 };
+  *ptr1 = (unsigned int)ptr2;
+  *ptr2 = (unsigned int)ptr3;
+  mark_minor(refs, 1);
+  gc_print_minor();
+  gc_reset();
+  printf("Test 03 completed\n");
+}
 
 int main()
 {
   gc_test_01();
   gc_test_02();
+  gc_test_03();
 }
 
