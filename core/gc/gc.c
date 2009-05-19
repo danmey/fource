@@ -157,7 +157,7 @@ void* gc_alloc(int size)
 
 void gc_print_major()
 {
-  printf("**List of major heap allocated %d chunks\n", gc_cur_min_chunk);
+  printf("**List of major heap allocated chunks\n");
   int i;
   byte *cur;
   for(cur = &gc_major_heap[0];
@@ -295,9 +295,9 @@ void gc_test_06()
 
 void gc_test_07()
 {
-
+  gc_print_major();
   major_alloc(128);
-
+  gc_print_major();
   
 }
 
@@ -310,6 +310,7 @@ int main()
   gc_test_04();
   gc_test_05();
   gc_test_06();
+  gc_test_07();
   return 0;
 }
 
