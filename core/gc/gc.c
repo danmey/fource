@@ -111,7 +111,8 @@ void* major_alloc(int size)
   byte* cur;
   for(cur = &gc_major_heap[0];
         CHUNK_FLAGS((chunk_hdr_t*)cur) != GC_FLAG_FREE &&
-        size > CHUNK_SIZE((chunk_hdr_t*)cur);
+        size > CHUNK_SIZE((chunk_hdr_t*)cur) &&
+	cur < &gc_major_heap[GC_MAJOR_HEAP_SIZE];
       cur = cur + CHUNK_SIZE((chunk_hdr_t*)cur))
     ;
   
@@ -158,12 +159,12 @@ void gc_print_major()
 {
   printf("**List of major heap allocated %d chunks\n", gc_cur_min_chunk);
   int i;
+  byte *cur;
   for(cur = &gc_major_heap[0];
-      CHUNK_FLAGS((chunk_hdr_t*)cur) != GC_FLAG_FREE &&
-        size > CHUNK_SIZE((chunk_hdr_t*)cur);
+      cur < &gc_major_heap[GC_MAJOR_HEAP_SIZE];
       cur = cur + CHUNK_SIZE((chunk_hdr_t*)cur))
     {
-      int fl = CHUNK_FLAGS(cur);
+      int fl = CHUNK_FLAGS((chunk_hdr_t*)cur);
       char* ch_type = 0;
       switch(fl) {
       case GC_FLAG_FREE: ch_type = "free"; break;
@@ -171,8 +172,7 @@ void gc_print_major()
       case GC_COL_GREY:  ch_type = "grey"; break;
       case GC_COL_BLACK: ch_type = "black"; break;
       }
-      
-      printf("\tsize %.3d\tmarked %s\n", CHUNK_SIZE(ch), ch_type);
+      printf("\tsize %.3d\tmarked %s\n", CHUNK_SIZE((chunk_hdr_t*)cur), ch_type);
     }
   printf("**End of major chunks list\n");
 }
