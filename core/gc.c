@@ -11,10 +11,18 @@
 // let's first bit to be set if chunk has been marked during collection
 // initialy 0
 #define GC_MINOR_BITS_SIZE (GC_MINOR_CHUNK_SIZE-sizeof(unsigned int))
+
+#define GC_FLAG_FREE 0
+#define GC_COL_WHITE 1
+#define GC_COL_GREY 2
+#define GC_COL_BLACK 3
+
 // Mark chunk with least significant bit set to 1
 #define MARK_CHUNK(ch) (ch)->flags |= 1;
 // Extract chunk size from flag/size field
-#define CHUNK_SIZE(ch) ((ch)->flags & (~1))
+#define CHUNK_SIZE(ch) ((ch)->flags & (~3))
+#define CHUNK_FLAGS(ch) ((ch)->flags & (3))
+
 // Align by 4 bytes boundary (TODO: make it more portable)
 #define ALIGN(ptr) (((ptr)+3)&~3)
 // if it's not marked
@@ -48,6 +56,7 @@ minor_chunk_t gc_minor_heap[GC_MINOR_CHUNKS];
 byte gc_major_heap[GC_MAJOR_HEAP_SIZE];
 // Points to free chunk
 int gc_cur_min_chunk = 0;
+byte* gc_cur_mj_ptr = gc_minor_heap;
 // Some logging/debugging facilities
 //#define LOGGING
 #ifdef LOGGING
@@ -96,7 +105,37 @@ void* find_chunk(int size)
 
 void* major_alloc(int size)
 {
+  if ( size == 0 ) return 0;
+  size = ALIGN(size) + sizeof((chunk_hdr_t));
+  byte* cur;
+  for(cur = &gc_major_heap[0]; 
+      cur < gc_mj_ptr && 
+        CHUNK_FLAGS((chunk_hdr_t*)cur) != GC_FLAG_FREE && 
+        size > CHUNK_SIZE((chunk_hdr_t*)cur); 
+      cur = cur + CHUNK_SIZE((chunk_hdr_t*)cur))
+    ;
+
+  if ( cur == gc_mj_ptr && 
+       gc_mj_ptr + size + sizeof(chunk_hdr_t*) > &gc_major_heap[GC_MAJOR_HEAP_SIZE])
+    {
+      return 0;
+    }
+
+  
+  chunk_hdr_t* free_chunk =  (chunk_hdr_t*) cur;
+  if ( CHUNK_SIZE(free_chunk) == 0 ) {
+    free_chunk->size = size;
+    chunk_hdr_t* next_chunk = free_chunk->size + CHUNK_SIZE((chunk_hdr_t*)cur);
+    next->chunk->size = 
+  }
+  
+  
+    
+       
+       
   return 0;
+ 
+  
 }
 
 void* minor_alloc(int size)
@@ -119,6 +158,7 @@ void* minor_alloc(int size)
 }
 
 #define CHUNK_OFFSET(ch) (((minor_chunk_t*)(ch))-&gc_minor_heap[0])
+
 void gc_print_minor()
 {
   printf("**List of minor heap allocated %d chunks\n", gc_cur_min_chunk);
@@ -134,8 +174,11 @@ void gc_print_minor()
 void gc_reset()
 {
   gc_cur_min_chunk = 0;
+  ((chunk_hdr_t*)&gc_major_heap[0])->size = GC_MAJOR_HEAP_SIZE;
 }
 
+
+// Basic boundary check for allocation of different sizes of chunks 
 void gc_test_01()
 {
   printf("Running test 01\n");
@@ -153,6 +196,7 @@ void gc_test_01()
   printf("Test 01 completed\n");
 }
 
+// Basic collection test wihtout referencing elements 
 void gc_test_02()
 {
   printf("Running test 02\n");
@@ -166,6 +210,7 @@ void gc_test_02()
   printf("Test 02 completed\n");
 }
 
+// Linked list test 
 void gc_test_03()
 {
   printf("Running test 03\n");
@@ -181,10 +226,64 @@ void gc_test_03()
   printf("Test 03 completed\n");
 }
 
+// Circular list
+void gc_test_04()
+{
+  printf("Running test 04\n");
+  unsigned int* ptr1 = minor_alloc(4);
+  unsigned int* ptr2 = minor_alloc(4);
+  unsigned int* ptr3 = minor_alloc(4);
+  void* refs[] = { ptr1 };
+  *ptr1 = (unsigned int)ptr2;
+  *ptr2 = (unsigned int)ptr3;
+  *ptr3 = (unsigned int)ptr1;
+  mark_minor(refs, 1);
+  gc_print_minor();
+  gc_reset();
+  printf("Test 04 completed\n");
+}
+
+// Various values stored in the chunk
+void gc_test_05()
+{
+  printf("Running test 05\n");
+  unsigned int* ptr1 = minor_alloc(252);
+  unsigned int* ptr2 = minor_alloc(252);
+  unsigned int* ptr3 = minor_alloc(252);
+  unsigned int* ptr4 = minor_alloc(252);
+  void* refs[] = { ptr1 };
+  ptr1[0] = (unsigned int)ptr2;
+  ptr1[3] = 3;
+  ptr1[4] = 5;
+  ptr1[32] = (unsigned int)ptr3;
+  ptr1[60] = -1;
+  ptr1[61] = -3;
+  ptr1[62] = (unsigned int)ptr4;
+  mark_minor(refs, 1);
+  gc_print_minor();
+  gc_reset();
+  printf("Test 05 completed\n");
+}
+
+// Test for exceeding allocation memory of first heap
+void gc_test_06()
+{
+  printf("Running test 06\n");
+  int i;
+  for(i=0; minor_alloc(4); i++);
+  assert(i==GC_MINOR_CHUNKS);
+  printf("Test 06 completed\n");
+}
+
+
 int main()
 {
   gc_test_01();
   gc_test_02();
   gc_test_03();
+  gc_test_04();
+  gc_test_05();
+  gc_test_06();
 }
 
+  
