@@ -8,3 +8,5 @@ fource
 image
 *.fi
 *.a
+*.res\n
+*\#\n

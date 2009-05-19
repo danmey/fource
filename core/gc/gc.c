@@ -56,7 +56,7 @@ minor_chunk_t gc_minor_heap[GC_MINOR_CHUNKS];
 byte gc_major_heap[GC_MAJOR_HEAP_SIZE];
 // Points to free chunk
 int gc_cur_min_chunk = 0;
-byte* gc_cur_mj_ptr = gc_minor_heap;
+//byte* gc_mj_ptr = gc_major_heap;
 // Some logging/debugging facilities
 //#define LOGGING
 #ifdef LOGGING
@@ -103,39 +103,27 @@ void* find_chunk(int size)
   //  for(it = (chunk_hdr_t*)&gc_major_heap[0]; it->flags; it = 
 }
 
+
 void* major_alloc(int size)
 {
   if ( size == 0 ) return 0;
-  size = ALIGN(size) + sizeof((chunk_hdr_t));
+  size = ALIGN(size) + sizeof(chunk_hdr_t);
   byte* cur;
-  for(cur = &gc_major_heap[0]; 
-      cur < gc_mj_ptr && 
-        CHUNK_FLAGS((chunk_hdr_t*)cur) != GC_FLAG_FREE && 
-        size > CHUNK_SIZE((chunk_hdr_t*)cur); 
+  for(cur = &gc_major_heap[0];
+        CHUNK_FLAGS((chunk_hdr_t*)cur) != GC_FLAG_FREE &&
+        size > CHUNK_SIZE((chunk_hdr_t*)cur);
       cur = cur + CHUNK_SIZE((chunk_hdr_t*)cur))
     ;
-
-  if ( cur == gc_mj_ptr && 
-       gc_mj_ptr + size + sizeof(chunk_hdr_t*) > &gc_major_heap[GC_MAJOR_HEAP_SIZE])
-    {
-      return 0;
-    }
-
   
+  if ( cur >= &gc_major_heap[GC_MAJOR_HEAP_SIZE] )
+    return 0;
+
   chunk_hdr_t* free_chunk =  (chunk_hdr_t*) cur;
-  if ( CHUNK_SIZE(free_chunk) == 0 ) {
-    free_chunk->size = size;
-    chunk_hdr_t* next_chunk = free_chunk->size + CHUNK_SIZE((chunk_hdr_t*)cur);
-    next->chunk->size = 
-  }
-  
-  
-    
-       
-       
-  return 0;
- 
-  
+  unsigned int prev_size = CHUNK_SIZE(free_chunk);
+  free_chunk->flags = size;
+  chunk_hdr_t* next_chunk = (chunk_hdr_t*)(cur + size);
+  next_chunk->flags = prev_size-size;
+  return (void*)free_chunk;
 }
 
 void* minor_alloc(int size)
@@ -145,7 +133,7 @@ void* minor_alloc(int size)
   size = ALIGN(size);
 
   if ( size > (GC_MINOR_CHUNK_SIZE - sizeof(int)) )
-    return major_alloc(size);
+    return 0; //major_alloc(size);
 
   if ( gc_cur_min_chunk >= GC_MINOR_CHUNKS )
     {
@@ -155,6 +143,13 @@ void* minor_alloc(int size)
     }
   gc_minor_heap[gc_cur_min_chunk].flags = size;
   return gc_minor_heap[gc_cur_min_chunk++].bits;
+}
+
+void* gc_alloc(int size)
+{
+  void* ptr = minor_alloc(size);
+  if ( ptr == 0 ) return major_alloc(size);
+  return ptr;
 }
 
 #define CHUNK_OFFSET(ch) (((minor_chunk_t*)(ch))-&gc_minor_heap[0])
@@ -168,13 +163,25 @@ void gc_print_minor()
       minor_chunk_t *ch = &gc_minor_heap[i];
       printf("\tchunk %.4d\tsize %.3d\tmarked %c\n", CHUNK_OFFSET(ch), CHUNK_SIZE(ch), (MARKED(ch) ? 'y' : 'n'));
     }
-  printf("**End of chunks list\n");
+  printf("**End of minor chunks list\n");
+}
+
+void gc_print_major()
+{
+  printf("**List of major heap allocated %d chunks\n", gc_cur_min_chunk);
+  int i;
+  for(i=0; i < gc_cur_min_chunk; ++i)
+    {
+      minor_chunk_t *ch = &gc_minor_heap[i];
+      printf("\tchunk %.4d\tsize %.3d\tmarked %c\n", CHUNK_OFFSET(ch), CHUNK_SIZE(ch), (MARKED(ch) ? 'y' : 'n'));
+    }
+  printf("**End of major chunks list\n");
 }
 
 void gc_reset()
 {
   gc_cur_min_chunk = 0;
-  ((chunk_hdr_t*)&gc_major_heap[0])->size = GC_MAJOR_HEAP_SIZE;
+  ((chunk_hdr_t*)&gc_major_heap[0])->flags = GC_MAJOR_HEAP_SIZE;
 }
 
 
@@ -275,6 +282,11 @@ void gc_test_06()
   printf("Test 06 completed\n");
 }
 
+void gc_test_07()
+{
+  
+}
+
 
 int main()
 {
@@ -284,6 +296,7 @@ int main()
   gc_test_04();
   gc_test_05();
   gc_test_06();
+  return 0;
 }
 
   
