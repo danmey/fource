@@ -17,31 +17,37 @@
 #define GC_COL_GREY 2
 #define GC_COL_BLACK 3
 #define GC_MARKED 1
+
+#define BITS(ch) ((ch)+sizeof(unsigned int))
+#define BITS_AT(ch, idx) (*(((void**)(BITS((ch))+(idx)*sizeof(void*)))))
+#define FLAGS(ch) (*((unsigned int*) (ch)))
 // Mark chunk with least significant bit set to 1
-#define MARK_CHUNK(ch,col) (ch)->flags |= col;
+#define MARK_CHUNK(ch,col) ((FLAGS(ch)) |= col);
 
 // Extract chunk size from flag/size field
-#define CHUNK_SIZE(ch) ((ch)->flags & (~3))
-#define CHUNK_FLAGS(ch) ((ch)->flags & (3))
+#define CHUNK_SIZE(ch) (FLAGS((ch)) & (~3))
+#define CHUNK_FLAGS(ch) (FLAGS((ch)) & (3))
 // Align by 4 bytes boundary (TODO: make it more portable)
 #define ALIGN(ptr) (((ptr)+3)&~3)
 // if it's not marked
 #define MEM_TAG(ptr) (!(((unsigned int)(ptr))&1))
 // If the pointer is pointing the first generation heap
-#define POINTS_MINOR(ptr) ((ptr) >= (void*)&gc_minor_heap[0] && (ptr) < (void*)&gc_minor_heap[GC_MINOR_CHUNK_SIZE])
+#define POINTS_MINOR(ptr) (((byte*)(ptr)) >= &gc_minor_heap[0] && ((byte*)(ptr)) < &gc_minor_heap[GC_MINOR_HEAP_SIZE])
 // Calculate address of begining of chunk
-#define MINOR_CHUNK(ptr) (&gc_minor_heap[((((char*)(ptr)) - (char*)&gc_minor_heap[0])/GC_MINOR_CHUNK_SIZE)])
+#define MINOR_CHUNK(ptr) (((((byte*)(ptr) - &gc_minor_heap[0])/GC_MINOR_CHUNK_SIZE)*GC_MINOR_CHUNK_SIZE)+&gc_minor_heap[0])
 // Find if the chunk points to another chunk
 #define REF_PTR(ptr) (MEM_TAG((ptr)) && POINTS_MINOR((ptr)))
 // Is it marked?
-#define MARKED(ch) ((ch)->flags & 1)
+#define MARKED(ch) (FLAGS(ch) & 1)
 //#define MJ_CHUNK_SIZE(ch) ((ch)->flags& (3<<
 // The chunk structure
-typedef struct {
+/*
+typedef s
+truct {
   unsigned int flags; 
   void* bits[GC_MINOR_BITS_SIZE/4];
 } chunk_t;
-
+*/
 /*
 // Major chunk header
 typedef struct {
@@ -54,7 +60,7 @@ typedef unsigned int hdr;
 typedef byte chunk[sizeof(hdr)+GC_MINOR_BITS_SIZE];
 
 // Our first generation heap
-chunk gc_minor_heap[GC_MINOR_CHUNKS];
+byte gc_minor_heap[GC_MINOR_HEAP_SIZE];
 // Elder generation heap
 byte gc_major_heap[GC_MAJOR_HEAP_SIZE];
 // Points to free chunk
@@ -70,16 +76,16 @@ int gc_cur_min_chunk = 0;
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Marks ref
-void mark_chunk(chunk_t* ch)
+void mark_chunk(byte* ch)
 {
   MARK_CHUNK(ch, GC_MARKED);
   LOG("Starting marking chunk: %d", ch-&gc_minor_heap[0]);
   int i;
   for(i=0; i < CHUNK_SIZE(ch)/sizeof(void*); ++i)
     {
-      if ( REF_PTR(ch->bits[i]) ) 
+      if ( REF_PTR(BITS_AT(ch,i)) )
         {
-	  chunk_t* ref_ch = MINOR_CHUNK(ch->bits[i]);
+	  byte* ref_ch = MINOR_CHUNK(BITS_AT(ch,i));
 	  LOG("\tChunk referencing chunk %d at offset %d", ref_ch-&gc_minor_heap[0], i);
 	  if ( !MARKED(ref_ch) )
 	    mark_chunk(ref_ch);
@@ -94,7 +100,7 @@ void mark_minor(void* refs[], int count)
     {
       if ( REF_PTR(refs[i]) )
         {
-	  chunk_t* ch = MINOR_CHUNK(refs[i]);
+	  byte* ch = MINOR_CHUNK(refs[i]);
 	  mark_chunk(ch);
         }
     }
@@ -114,21 +120,21 @@ void* major_alloc(int size)
   size = ALIGN(size) + sizeof(int);
   byte* cur;
   for(cur = &gc_major_heap[0];
-      (CHUNK_FLAGS((chunk_t*)cur) != GC_FLAG_FREE ||
-       size > CHUNK_SIZE((chunk_t*)cur)) &&
+      (CHUNK_FLAGS(cur) != GC_FLAG_FREE ||
+       size > CHUNK_SIZE(cur)) &&
 	cur < &gc_major_heap[GC_MAJOR_HEAP_SIZE];
-      cur = cur + CHUNK_SIZE((chunk_t*)cur))
+      cur = cur + CHUNK_SIZE(cur))
     ;
   
   if ( cur >= &gc_major_heap[GC_MAJOR_HEAP_SIZE] )
     return 0;
 
-  chunk_t* free_chunk =  (chunk_t*) cur;
+  byte* free_chunk =  cur;
   unsigned int prev_size = CHUNK_SIZE(free_chunk);
-  free_chunk->flags = size;
+  FLAGS(free_chunk) = size;
   MARK_CHUNK(free_chunk, GC_COL_WHITE);
-  chunk_t* next_chunk = (chunk_t*)(cur + size);
-  next_chunk->flags = prev_size-size;
+  byte* next_chunk = (cur + size);
+  FLAGS(next_chunk) = prev_size-size;
   return (void*)free_chunk;
 }
 
@@ -147,8 +153,8 @@ void* minor_alloc(int size)
       //      return minor_alloc(size);
       return 0;
     }
-  gc_minor_heap[gc_cur_min_chunk].flags = size;
-  return gc_minor_heap[gc_cur_min_chunk++].bits;
+  FLAGS(&gc_minor_heap[gc_cur_min_chunk*GC_MINOR_CHUNK_SIZE]) = size;
+  return BITS(&gc_minor_heap[gc_cur_min_chunk++*GC_MINOR_CHUNK_SIZE]);
 }
 
 void* gc_alloc(int size)
@@ -158,7 +164,7 @@ void* gc_alloc(int size)
   return ptr;
 }
 
-#define CHUNK_OFFSET(ch) (((chunk_t*)(ch))-&gc_minor_heap[0])
+#define CHUNK_OFFSET(ch) ((((ch))-&gc_minor_heap[0])/GC_MINOR_CHUNK_SIZE)
 
 void gc_print_major()
 {
@@ -167,9 +173,9 @@ void gc_print_major()
   byte *cur;
   for(cur = &gc_major_heap[0];
       cur < &gc_major_heap[GC_MAJOR_HEAP_SIZE];
-      cur = cur + CHUNK_SIZE((chunk_t*)cur))
+      cur = cur + CHUNK_SIZE(cur))
     {
-      int fl = CHUNK_FLAGS((chunk_t*)cur);
+      int fl = CHUNK_FLAGS(cur);
       char* ch_type = 0;
       switch(fl) {
       case GC_FLAG_FREE: ch_type = "free"; break;
@@ -177,7 +183,7 @@ void gc_print_major()
       case GC_COL_GREY:  ch_type = "grey"; break;
       case GC_COL_BLACK: ch_type = "black"; break;
       }
-      printf("\tsize %.3d\tmarked %s\n", CHUNK_SIZE((chunk_t*)cur), ch_type);
+      printf("\tsize %.3d\tmarked %s\n", CHUNK_SIZE(cur), ch_type);
     }
   printf("**End of major chunks list\n");
 }
@@ -188,7 +194,7 @@ void gc_print_minor()
   int i;
   for(i=0; i < gc_cur_min_chunk; ++i)
     {
-      chunk_t *ch = &gc_minor_heap[i];
+      byte *ch = &gc_minor_heap[i*GC_MINOR_CHUNK_SIZE];
       printf("\tchunk %.4d\tsize %.3d\tmarked %c\n", CHUNK_OFFSET(ch), CHUNK_SIZE(ch), (MARKED(ch) ? 'y' : 'n'));
     }
   printf("**End of minor chunks list\n");
@@ -197,7 +203,7 @@ void gc_print_minor()
 void gc_reset()
 {
   gc_cur_min_chunk = 0;
-  ((chunk_t*)&gc_major_heap[0])->flags = GC_MAJOR_HEAP_SIZE;
+  FLAGS(&gc_major_heap[0]) = GC_MAJOR_HEAP_SIZE;
 }
 
 
@@ -305,7 +311,7 @@ END_TEST()
 int main()
 {
   test_01();
-  test_02();
+   test_02();
   test_03();
   test_04();
   test_05();
