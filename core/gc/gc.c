@@ -50,9 +50,11 @@ typedef struct {
 */
 // need to be aligned!
 typedef char byte;
+typedef unsigned int hdr;
+typedef byte chunk[sizeof(hdr)+GC_MINOR_BITS_SIZE];
 
 // Our first generation heap
-chunk_t gc_minor_heap[GC_MINOR_CHUNKS];
+chunk gc_minor_heap[GC_MINOR_CHUNKS];
 // Elder generation heap
 byte gc_major_heap[GC_MAJOR_HEAP_SIZE];
 // Points to free chunk
