@@ -16,9 +16,10 @@
 #define GC_COL_WHITE 1
 #define GC_COL_GREY 2
 #define GC_COL_BLACK 3
-
+#define GC_MARKED 1
 // Mark chunk with least significant bit set to 1
-#define MARK_CHUNK(ch) (ch)->flags |= 1;
+#define MARK_CHUNK(ch,col) (ch)->flags |= col;
+
 // Extract chunk size from flag/size field
 #define CHUNK_SIZE(ch) ((ch)->flags & (~3))
 #define CHUNK_FLAGS(ch) ((ch)->flags & (3))
@@ -69,7 +70,7 @@ int gc_cur_min_chunk = 0;
 // Marks ref
 void mark_chunk(minor_chunk_t* ch)
 {
-  MARK_CHUNK(ch);
+  MARK_CHUNK(ch, GC_MARKED);
   LOG("Starting marking chunk: %d", ch-&gc_minor_heap[0]);
   int i;
   for(i=0; i < CHUNK_SIZE(ch)/sizeof(void*); ++i)
@@ -122,6 +123,7 @@ void* major_alloc(int size)
   chunk_hdr_t* free_chunk =  (chunk_hdr_t*) cur;
   unsigned int prev_size = CHUNK_SIZE(free_chunk);
   free_chunk->flags = size;
+  MARK_CHUNK(free_chunk, GC_COL_WHITE);
   chunk_hdr_t* next_chunk = (chunk_hdr_t*)(cur + size);
   next_chunk->flags = prev_size-size;
   return (void*)free_chunk;
@@ -279,9 +281,16 @@ END_TEST()
 
 BEGIN_TEST(07)
   gc_print_major();
-  major_alloc(128);
-  gc_print_major();
 END_TEST()  
+
+BEGIN_TEST(08)
+assert(major_alloc(0)==0);
+assert(major_alloc(GC_MAJOR_HEAP_SIZE-sizeof(unsigned int))!= 0);
+gc_print_major();
+gc_reset();
+assert(major_alloc(GC_MAJOR_HEAP_SIZE-sizeof(unsigned int)+1) != 0);
+
+END_TEST()
 
 int main()
 {
@@ -292,6 +301,7 @@ int main()
   test_05();
   test_06();
   test_07();
+  test_08();
   return 0;
 }
 
