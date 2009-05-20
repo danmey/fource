@@ -289,7 +289,6 @@ assert(major_alloc(GC_MAJOR_HEAP_SIZE-sizeof(unsigned int))!= 0);
 gc_print_major();
 gc_reset();
 assert(major_alloc(GC_MAJOR_HEAP_SIZE-sizeof(unsigned int)+1) != 0);
-
 END_TEST()
 
 int main()
