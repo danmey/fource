@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
-
+#include "test.h"
 // Let's assume constant size of younger heap chunks
 #define GC_MINOR_CHUNK_SIZE 256
 #define GC_MINOR_HEAP_SIZE (1024*64)
@@ -197,9 +197,7 @@ void gc_reset()
 
 
 // Basic boundary check for allocation of different sizes of chunks 
-void gc_test_01()
-{
-  printf("Running test 01\n");
+BEGIN_TEST(01)
   assert(minor_alloc(0)==0);
   assert(minor_alloc(GC_MINOR_CHUNK_SIZE-sizeof(int))!=0);
   assert(minor_alloc(GC_MINOR_CHUNK_SIZE)==0);
@@ -211,13 +209,10 @@ void gc_test_01()
   assert(minor_alloc(5)!=0);
   gc_print_minor();
   gc_reset();
-  printf("Test 01 completed\n");
-}
+END_TEST()
 
 // Basic collection test wihtout referencing elements 
-void gc_test_02()
-{
-  printf("Running test 02\n");
+BEGIN_TEST(02)
   unsigned int* ptr1 = minor_alloc(4);
   unsigned int* ptr2 = minor_alloc(4);
   unsigned int* ptr3 = minor_alloc(4);
@@ -225,13 +220,11 @@ void gc_test_02()
   mark_minor(refs, 2 );
   gc_print_minor();
   gc_reset();
-  printf("Test 02 completed\n");
-}
+END_TEST()
 
 // Linked list test 
-void gc_test_03()
-{
-  printf("Running test 03\n");
+
+BEGIN_TEST(03)
   unsigned int* ptr1 = minor_alloc(4);
   unsigned int* ptr2 = minor_alloc(4);
   unsigned int* ptr3 = minor_alloc(4);
@@ -241,13 +234,11 @@ void gc_test_03()
   mark_minor(refs, 1);
   gc_print_minor();
   gc_reset();
-  printf("Test 03 completed\n");
-}
+END_TEST()
+
 
 // Circular list
-void gc_test_04()
-{
-  printf("Running test 04\n");
+BEGIN_TEST(04)
   unsigned int* ptr1 = minor_alloc(4);
   unsigned int* ptr2 = minor_alloc(4);
   unsigned int* ptr3 = minor_alloc(4);
@@ -258,13 +249,10 @@ void gc_test_04()
   mark_minor(refs, 1);
   gc_print_minor();
   gc_reset();
-  printf("Test 04 completed\n");
-}
+END_TEST()
 
 // Various values stored in the chunk
-void gc_test_05()
-{
-  printf("Running test 05\n");
+BEGIN_TEST(05)
   unsigned int* ptr1 = minor_alloc(252);
   unsigned int* ptr2 = minor_alloc(252);
   unsigned int* ptr3 = minor_alloc(252);
@@ -280,37 +268,30 @@ void gc_test_05()
   mark_minor(refs, 1);
   gc_print_minor();
   gc_reset();
-  printf("Test 05 completed\n");
-}
+END_TEST()
 
 // Test for exceeding allocation memory of first heap
-void gc_test_06()
-{
-  printf("Running test 06\n");
+BEGIN_TEST(06)
   int i;
   for(i=0; minor_alloc(4); i++);
   assert(i==GC_MINOR_CHUNKS);
-  printf("Test 06 completed\n");
-}
+END_TEST()
 
-void gc_test_07()
-{
+BEGIN_TEST(07)
   gc_print_major();
   major_alloc(128);
   gc_print_major();
-  
-}
-
+END_TEST()  
 
 int main()
 {
-  gc_test_01();
-  gc_test_02();
-  gc_test_03();
-  gc_test_04();
-  gc_test_05();
-  gc_test_06();
-  gc_test_07();
+  test_01();
+  test_02();
+  test_03();
+  test_04();
+  test_05();
+  test_06();
+  test_07();
   return 0;
 }
 
