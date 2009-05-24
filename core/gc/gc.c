@@ -26,7 +26,7 @@
 #define GC_MARKED 1
 
 #define WITH_HEADER(size) ((size) + sizeof(int))
-
+#define CHUNK_AT(i) (&gc_minor_heap[(i)*GC_MINOR_CHUNK_SIZE])
 #define BITS(ch) (WITH_HEADER(ch))
 #define BITS_AT(ch, idx) (*(((void**)(BITS((ch))+(idx)*sizeof(void*)))))
 #define FLAGS(ch) (*((unsigned int*) (ch)))
@@ -72,7 +72,7 @@ byte gc_minor_heap[GC_MINOR_HEAP_SIZE];
 byte gc_major_heap[GC_MAJOR_HEAP_SIZE];
 // Points to free chunk
 int gc_cur_min_chunk = 0;
-byte* gc_relocs[GC_MINOR_CHUNKS];
+void* gc_minor_relocated[GC_MINOR_CHUNKS][2];
 void* gc_backpatch_table[GC_MINOR_HEAP_SIZE][2];
 
 //byte* gc_mj_ptr = gc_major_heap;
@@ -116,6 +116,7 @@ void mark_minor(void* refs[], int count)
     }
 }
 
+
 void* major_alloc(int size)
 {
   if ( size == 0 ) return 0;
@@ -140,20 +141,20 @@ void* major_alloc(int size)
   return (void*)free_chunk;
 }
 
-void build_relocs()
+/*
+void reloc_minor()
 {
-  memset(gc_relocs, 0, sizeof(gc_relocs));
+  memset(gc_minor_relocated, 0, sizeof(gc_minor_relocated));
   int i;
   for(i=0; i < gc_cur_min_chunk; ++i)
     {
-      byte *ch = &gc_minor_heap[i*GC_MINOR_CHUNK_SIZE];
       if ( MARKED(ch) ) 
 	{
 	  gc_relocs[i] = major_alloc(CHUNK_SIZE(ch));
       }
     }
 }
-
+*/
 void collect_minor()
 {
   
@@ -174,8 +175,8 @@ void* minor_alloc(int size)
       //      return minor_alloc(size);
       return 0;
     }
-  FLAGS(&gc_minor_heap[gc_cur_min_chunk*GC_MINOR_CHUNK_SIZE]) = size;
-  return BITS(&gc_minor_heap[gc_cur_min_chunk++*GC_MINOR_CHUNK_SIZE]);
+  FLAGS(CHUNK_AT(gc_cur_min_chunk)) = size;
+  return BITS(CHUNK_AT(gc_cur_min_chunk++));
 }
 
 
@@ -219,7 +220,7 @@ void gc_print_minor()
   int i;
   for(i=0; i < gc_cur_min_chunk; ++i)
     {
-      byte *ch = &gc_minor_heap[i*GC_MINOR_CHUNK_SIZE];
+      byte *ch = CHUNK_AT(i);
       printf("\tchunk %.4d\tsize %.3d\tmarked %c\n", CHUNK_OFFSET(ch), CHUNK_SIZE(ch), (MARKED(ch) ? 'y' : 'n'));
     }
   printf("**End of minor chunks list\n");
@@ -269,9 +270,10 @@ void gc_print_refs()
       if ( gc_ref_tab[i] != 0 )
 	{
 	  char* points_to = "??";
-	  if ( POINTS_MINOR(gc_ref_tab[i]) ) points_to = "minor";
-	  if ( POINTS_MAJOR(gc_ref_tab[i]) ) points_to = "major";
-	  printf("\tReference at %p(%s)\t->\t%p\n", gc_ref_tab[i], points_to, *((void**)gc_ref_tab[i]));
+	  void* heap = 0;
+	  if ( POINTS_MINOR(gc_ref_tab[i]) ) { points_to = "minor"; heap = gc_minor_heap;}
+	  if ( POINTS_MAJOR(gc_ref_tab[i]) ) {points_to = "major";heap = gc_major_heap;}
+	  printf("\tReference at offset %.8x(%s)\t->\t%p\n", gc_ref_tab[i] - heap, points_to, *((void**)gc_ref_tab[i]));
 	}
       else
 	printf("\tEmpty slot\n");
@@ -379,6 +381,8 @@ assert(major_alloc(WITHOUT_HEADER(GC_MAJOR_HEAP_SIZE) - 2*sizeof(unsigned int)) 
 assert(major_alloc(4)!= 0);
 gc_print_major();
 END_TEST()
+
+
 
 // Refs test
 BEGIN_TEST(09)
