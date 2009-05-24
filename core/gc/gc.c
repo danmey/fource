@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 #include "test.h"
 // Let's assume constant size of younger heap chunks
 #define GC_MINOR_CHUNK_SIZE 256
@@ -10,15 +11,22 @@
 // We need to sacrifice first 4 bytes flag/size
 // let's first bit to be set if chunk has been marked during collection
 // initialy 0
-#define GC_MINOR_BITS_SIZE (GC_MINOR_CHUNK_SIZE-sizeof(unsigned int))
 
+#define WITH_HEADER(size) ((size) + sizeof(int))
+#define WITHOUT_HEADER(size) ((size) - sizeof(int))
+#define GC_MINOR_RAW_CHUNK_SIZE (WITHOUT_HEADER((GC_MINOR_CHUNK_SIZE)))
+
+#define GC_MINOR_BITS_SIZE (WITHOUT_HEADER(GC_MINOR_CHUNK_SIZE))
+#define GC_ROOT_TAB_ENTRIES 65536
 #define GC_FLAG_FREE 0
 #define GC_COL_WHITE 1
 #define GC_COL_GREY 2
 #define GC_COL_BLACK 3
 #define GC_MARKED 1
 
-#define BITS(ch) ((ch)+sizeof(unsigned int))
+#define WITH_HEADER(size) ((size) + sizeof(int))
+
+#define BITS(ch) (WITH_HEADER(ch))
 #define BITS_AT(ch, idx) (*(((void**)(BITS((ch))+(idx)*sizeof(void*)))))
 #define FLAGS(ch) (*((unsigned int*) (ch)))
 // Mark chunk with least significant bit set to 1
@@ -39,25 +47,20 @@
 #define REF_PTR(ptr) (MEM_TAG((ptr)) && POINTS_MINOR((ptr)))
 // Is it marked?
 #define MARKED(ch) (FLAGS(ch) & 1)
-//#define MJ_CHUNK_SIZE(ch) ((ch)->flags& (3<<
-// The chunk structure
-/*
-typedef s
-truct {
-  unsigned int flags; 
-  void* bits[GC_MINOR_BITS_SIZE/4];
-} chunk_t;
-*/
-/*
-// Major chunk header
-typedef struct {
-  unsigned int flags;
-} chunk_hdr_t;
-*/
+
+typedef struct
+{
+  int count;
+  void *ptr;
+} global_root_t;
+
+global_root_t gc_roots[GC_ROOT_TAB_ENTRIES];
+int gc_roots_count = 0;
+
 // need to be aligned!
 typedef char byte;
-typedef unsigned int hdr;
-typedef byte chunk[sizeof(hdr)+GC_MINOR_BITS_SIZE];
+//typedef unsigned int hdr;
+//typedef byte chunk[sizeof(hdr)+GC_MINOR_BITS_SIZE];
 
 // Our first generation heap
 byte gc_minor_heap[GC_MINOR_HEAP_SIZE];
@@ -65,6 +68,9 @@ byte gc_minor_heap[GC_MINOR_HEAP_SIZE];
 byte gc_major_heap[GC_MAJOR_HEAP_SIZE];
 // Points to free chunk
 int gc_cur_min_chunk = 0;
+byte* gc_relocs[GC_MINOR_CHUNKS];
+void* gc_backpatch_table[GC_MINOR_HEAP_SIZE][2];
+
 //byte* gc_mj_ptr = gc_major_heap;
 // Some logging/debugging facilities
 //#define LOGGING
@@ -106,18 +112,10 @@ void mark_minor(void* refs[], int count)
     }
 }
 
-void* find_chunk(int size)
-{
-  //  chunk_hdr_t* it;
-  //  for(it = (chunk_hdr_t*)&gc_major_heap[0]; it->flags; it = 
-}
-
-
-
 void* major_alloc(int size)
 {
   if ( size == 0 ) return 0;
-  size = ALIGN(size) + sizeof(int);
+  size = WITH_HEADER(ALIGN(size));
   byte* cur;
   for(cur = &gc_major_heap[0];
       (CHUNK_FLAGS(cur) != GC_FLAG_FREE ||
@@ -138,18 +136,37 @@ void* major_alloc(int size)
   return (void*)free_chunk;
 }
 
+void build_relocs()
+{
+  memset(gc_relocs, 0, sizeof(gc_relocs));
+  int i;
+  for(i=0; i < gc_cur_min_chunk; ++i)
+    {
+      byte *ch = &gc_minor_heap[i*GC_MINOR_CHUNK_SIZE];
+      if ( MARKED(ch) ) 
+	{
+	  gc_relocs[i] = major_alloc(CHUNK_SIZE(ch));
+      }
+    }
+}
+
+void collect_minor()
+{
+  
+}
+
 void* minor_alloc(int size)
 {
   if ( size == 0 ) return 0;
   //  assert(size != 0);
   size = ALIGN(size);
 
-  if ( size > (GC_MINOR_CHUNK_SIZE - sizeof(int)) )
+  if ( size > (WITHOUT_HEADER(GC_MINOR_CHUNK_SIZE)) )
     return 0; //major_alloc(size);
 
   if ( gc_cur_min_chunk >= GC_MINOR_CHUNKS )
     {
-      //collect_minor();
+      //      collect_minor();
       //      return minor_alloc(size);
       return 0;
     }
@@ -157,12 +174,16 @@ void* minor_alloc(int size)
   return BITS(&gc_minor_heap[gc_cur_min_chunk++*GC_MINOR_CHUNK_SIZE]);
 }
 
+
+
+/*
 void* gc_alloc(int size)
 {
   void* ptr = minor_alloc(size);
   if ( ptr == 0 ) return major_alloc(size);
   return ptr;
 }
+*/
 
 #define CHUNK_OFFSET(ch) ((((ch))-&gc_minor_heap[0])/GC_MINOR_CHUNK_SIZE)
 
@@ -206,20 +227,24 @@ void gc_reset()
   FLAGS(&gc_major_heap[0]) = GC_MAJOR_HEAP_SIZE;
 }
 
+void gc_register_ref(void** tab, int count)
+{
+  
+}
 
 // Basic boundary check for allocation of different sizes of chunks 
 BEGIN_TEST(01)
-  assert(minor_alloc(0)==0);
-  assert(minor_alloc(GC_MINOR_CHUNK_SIZE-sizeof(int))!=0);
-  assert(minor_alloc(GC_MINOR_CHUNK_SIZE)==0);
-  assert(minor_alloc(GC_MINOR_CHUNK_SIZE-sizeof(int)-2)!=0);
-  assert(minor_alloc(GC_MINOR_CHUNK_SIZE-2*sizeof(int))!=0);
-  assert(minor_alloc(1)!=0);
-  assert(minor_alloc(3)!=0);
-  assert(minor_alloc(4)!=0);
-  assert(minor_alloc(5)!=0);
-  gc_print_minor();
-  gc_reset();
+assert(minor_alloc(0)==0);
+assert(minor_alloc(GC_MINOR_RAW_CHUNK_SIZE)!=0);
+assert(minor_alloc(GC_MINOR_CHUNK_SIZE)==0);
+assert(minor_alloc(GC_MINOR_RAW_CHUNK_SIZE-2)!=0);
+assert(minor_alloc(GC_MINOR_RAW_CHUNK_SIZE-sizeof(int))!=0);
+assert(minor_alloc(1)!=0);
+assert(minor_alloc(3)!=0);
+assert(minor_alloc(4)!=0);
+assert(minor_alloc(5)!=0);
+gc_print_minor();
+gc_reset();
 END_TEST()
 
 // Basic collection test wihtout referencing elements 
@@ -235,15 +260,15 @@ END_TEST()
 
 // Linked list test 
 BEGIN_TEST(03)
-  unsigned int* ptr1 = minor_alloc(4);
-  unsigned int* ptr2 = minor_alloc(4);
-  unsigned int* ptr3 = minor_alloc(4);
-  void* refs[] = { ptr1 };
-  *ptr1 = (unsigned int)ptr2;
-  *ptr2 = (unsigned int)ptr3;
-  mark_minor(refs, 1);
-  gc_print_minor();
-  gc_reset();
+unsigned int* ptr1 = minor_alloc(4);
+unsigned int* ptr2 = minor_alloc(4);
+unsigned int* ptr3 = minor_alloc(4);
+void* refs[] = { ptr1 };
+*ptr1 = (unsigned int)ptr2;
+*ptr2 = (unsigned int)ptr3;
+mark_minor(refs, 1);
+gc_print_minor();
+gc_reset();
 END_TEST()
 
 
@@ -282,9 +307,9 @@ END_TEST()
 
 // Test for exceeding allocation memory of first heap
 BEGIN_TEST(06)
-  int i;
-  for(i=0; minor_alloc(4); i++);
-  assert(i==GC_MINOR_CHUNKS);
+int i;
+for(i=0; minor_alloc(4); i++);
+assert(i==GC_MINOR_CHUNKS);
 END_TEST()
 
 // Checking initial layout of elder heap
@@ -293,25 +318,25 @@ gc_reset();
 gc_print_major();
 END_TEST()  
 
-// checking allocation
+// Checking allocation on major heap
 BEGIN_TEST(08)
 gc_reset();
 assert(major_alloc(0)==0);
-assert(major_alloc(GC_MAJOR_HEAP_SIZE - sizeof(unsigned int)) != 0);
+assert(major_alloc(WITHOUT_HEADER(GC_MAJOR_HEAP_SIZE)) != 0);
 gc_print_major();
 assert(major_alloc(4) == 0);
 gc_reset();
-assert(major_alloc(GC_MAJOR_HEAP_SIZE - sizeof(unsigned int)+1) == 0);
-assert(major_alloc(GC_MAJOR_HEAP_SIZE - 3*sizeof(unsigned int)) != 0);
+assert(major_alloc(WITHOUT_HEADER(GC_MAJOR_HEAP_SIZE)+1) == 0);
+assert(major_alloc(WITHOUT_HEADER(GC_MAJOR_HEAP_SIZE) - 2*sizeof(unsigned int)) != 0);
 assert(major_alloc(4)!= 0);
+gc_print_major();
 END_TEST()
-
 
 
 int main()
 {
   test_01();
-   test_02();
+  test_02();
   test_03();
   test_04();
   test_05();
