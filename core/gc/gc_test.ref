@@ -60,32 +60,32 @@ Running test 09
 **List of stored references. 0 references.
 **End of stored ref list
 **List of stored references. 1 references.
-	Reference at 0xa10b440(minor)	->	(nil)
+	Reference at offset 00000000(minor)	->	(nil)
 **End of stored ref list
 **List of stored references. 3 references.
-	Reference at 0xa10b440(minor)	->	0x123456
-	Reference at 0xa11b43c(minor)	->	(nil)
-	Reference at 0xa10b43c(major)	->	(nil)
+	Reference at offset 00000000(minor)	->	0x123456
+	Reference at offset 0000fffc(minor)	->	(nil)
+	Reference at offset 01fffffc(major)	->	(nil)
 **End of stored ref list
 **List of stored references. 2 references.
-	Reference at 0xa10b440(minor)	->	0x123456
-	Reference at 0xa11b43c(minor)	->	(nil)
+	Reference at offset 00000000(minor)	->	0x123456
+	Reference at offset 0000fffc(minor)	->	(nil)
 **End of stored ref list
 **List of stored references. 3 references.
-	Reference at 0xa10b440(minor)	->	0x123456
-	Reference at 0xa11b43c(minor)	->	(nil)
-	Reference at 0xa11b438(minor)	->	(nil)
+	Reference at offset 00000000(minor)	->	0x123456
+	Reference at offset 0000fffc(minor)	->	(nil)
+	Reference at offset 0000fff8(minor)	->	(nil)
 **End of stored ref list
 **List of stored references. 2 references.
-	Reference at 0xa10b440(minor)	->	0x123456
-	Reference at 0xa11b43c(minor)	->	(nil)
+	Reference at offset 00000000(minor)	->	0x123456
+	Reference at offset 0000fffc(minor)	->	(nil)
 **End of stored ref list
 **List of stored references. 2 references.
 	Empty slot
-	Reference at 0xa11b43c(minor)	->	(nil)
+	Reference at offset 0000fffc(minor)	->	(nil)
 **End of stored ref list
 **List of stored references. 2 references.
-	Reference at 0xa10b440(minor)	->	0x123456
-	Reference at 0xa11b43c(minor)	->	(nil)
+	Reference at offset 00000000(minor)	->	0x123456
+	Reference at offset 0000fffc(minor)	->	(nil)
 **End of stored ref list
 Test 09 completed

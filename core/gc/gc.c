@@ -73,7 +73,7 @@ byte gc_major_heap[GC_MAJOR_HEAP_SIZE];
 // Points to free chunk
 int gc_cur_min_chunk = 0;
 void* gc_minor_relocated[GC_MINOR_CHUNKS][2];
-void* gc_backpatch_table[GC_MINOR_HEAP_SIZE][2];
+void** gc_backpatch_table[GC_MINOR_HEAP_SIZE][2];
 
 //byte* gc_mj_ptr = gc_major_heap;
 // Some logging/debugging facilities
@@ -95,8 +95,10 @@ void mark_chunk(byte* ch)
     {
       if ( REF_PTR(BITS_AT(ch,i)) )
         {
-	  byte* ref_ch = MINOR_CHUNK(BITS_AT(ch,i));
-	  LOG("\tChunk referencing chunk %d at offset %d", ref_ch-&gc_minor_heap[0], i);
+	  byte* ptr = BITS_AT(ch,i);
+	  byte* ref_ch = MINOR_CHUNK(ptr);
+	  int idx = (ptr-&gc_minor_heap[0])/4;
+	  gc_backpatch_table[idx][0] = (void*)ptr;
 	  if ( !MARKED(ref_ch) )
 	    mark_chunk(ref_ch);
         }
@@ -105,6 +107,7 @@ void mark_chunk(byte* ch)
 
 void mark_minor(void* refs[], int count)
 {
+  memset(gc_backpatch_table, 0, sizeof(gc_backpatch_table));
   int i;
   for(i=0; i<count; ++i)
     {
@@ -148,9 +151,11 @@ void reloc_minor()
   int i;
   for(i=0; i < gc_cur_min_chunk; ++i)
     {
+      byte* ch = CHUNK_AT(i);
       if ( MARKED(ch) ) 
 	{
-	  gc_relocs[i] = major_alloc(CHUNK_SIZE(ch));
+	  
+	}
       }
     }
 }
@@ -230,6 +235,8 @@ void gc_reset()
 {
   gc_cur_min_chunk = 0;
   FLAGS(&gc_major_heap[0]) = GC_MAJOR_HEAP_SIZE;
+  memset(gc_backpatch_table, 0, sizeof(gc_backpatch_table));
+  gc_ref_count = 0;
 }
 
 void gc_add_ref(void* ref)
@@ -279,7 +286,24 @@ void gc_print_refs()
 	printf("\tEmpty slot\n");
     }
   printf("**End of stored ref list\n");
-  
+}
+
+void gc_print_backpatch()
+{
+  printf("**Printing backpatch table.\n");
+  int i;
+  for(i=0; i<GC_MINOR_HEAP_SIZE/4; ++i)
+    {
+      if ( gc_backpatch_table[i][0] != 0 )
+	{
+	  byte* ch1 = MINOR_CHUNK(gc_backpatch_table[i][0]);
+	  int idx1 = CHUNK_OFFSET(ch1);
+	  byte* ch2 = MINOR_CHUNK(*gc_backpatch_table[i][0]);
+	  int idx2 = CHUNK_OFFSET(ch2);
+	  printf("\tminor chunk %d at %d -> %d at %d\n", idx1, 0, idx2, 0);
+	}
+    }
+  printf("**End of backpatch table.\n");
 }
 
 // Basic boundary check for allocation of different sizes of chunks 
@@ -318,21 +342,23 @@ void* refs[] = { ptr1 };
 *ptr2 = (unsigned int)ptr3;
 mark_minor(refs, 1);
 gc_print_minor();
+gc_print_backpatch();
 gc_reset();
 END_TEST()
 
 
 // Circular list
 BEGIN_TEST(04)
-  unsigned int* ptr1 = minor_alloc(4);
-  unsigned int* ptr2 = minor_alloc(4);
-  unsigned int* ptr3 = minor_alloc(4);
-  void* refs[] = { ptr1 };
-  *ptr1 = (unsigned int)ptr2;
-  *ptr2 = (unsigned int)ptr3;
-  *ptr3 = (unsigned int)ptr1;
-  mark_minor(refs, 1);
-  gc_print_minor();
+unsigned int* ptr1 = minor_alloc(4);
+unsigned int* ptr2 = minor_alloc(4);
+unsigned int* ptr3 = minor_alloc(4);
+void* refs[] = { ptr1 };
+*ptr1 = (unsigned int)ptr2;
+*ptr2 = (unsigned int)ptr3;
+*ptr3 = (unsigned int)ptr1;
+mark_minor(refs, 1);
+gc_print_minor();
+
   gc_reset();
 END_TEST()
 
