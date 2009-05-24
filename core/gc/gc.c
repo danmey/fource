@@ -8,16 +8,17 @@
 #define GC_MAJOR_HEAP_SIZE (1024*1024*32)
 // Let's assume that every data structure is pointer size aligned
 #define GC_MINOR_CHUNKS (GC_MINOR_HEAP_SIZE/GC_MINOR_CHUNK_SIZE)
+#define GC_MAX_REF_COUNT 65536
 // We need to sacrifice first 4 bytes flag/size
 // let's first bit to be set if chunk has been marked during collection
 // initialy 0
 
 #define WITH_HEADER(size) ((size) + sizeof(int))
 #define WITHOUT_HEADER(size) ((size) - sizeof(int))
+
 #define GC_MINOR_RAW_CHUNK_SIZE (WITHOUT_HEADER((GC_MINOR_CHUNK_SIZE)))
 
 #define GC_MINOR_BITS_SIZE (WITHOUT_HEADER(GC_MINOR_CHUNK_SIZE))
-#define GC_ROOT_TAB_ENTRIES 65536
 #define GC_FLAG_FREE 0
 #define GC_COL_WHITE 1
 #define GC_COL_GREY 2
@@ -41,6 +42,7 @@
 #define MEM_TAG(ptr) (!(((unsigned int)(ptr))&1))
 // If the pointer is pointing the first generation heap
 #define POINTS_MINOR(ptr) (((byte*)(ptr)) >= &gc_minor_heap[0] && ((byte*)(ptr)) < &gc_minor_heap[GC_MINOR_HEAP_SIZE])
+#define POINTS_MAJOR(ptr) (((byte*)(ptr)) >= &gc_major_heap[0] && ((byte*)(ptr)) < &gc_major_heap[GC_MAJOR_HEAP_SIZE])
 // Calculate address of begining of chunk
 #define MINOR_CHUNK(ptr) (((((byte*)(ptr) - &gc_minor_heap[0])/GC_MINOR_CHUNK_SIZE)*GC_MINOR_CHUNK_SIZE)+&gc_minor_heap[0])
 // Find if the chunk points to another chunk
@@ -48,14 +50,16 @@
 // Is it marked?
 #define MARKED(ch) (FLAGS(ch) & 1)
 
+/*
 typedef struct
 {
   int count;
   void *ptr;
-} global_root_t;
+} gc_ref_t;
+*/
 
-global_root_t gc_roots[GC_ROOT_TAB_ENTRIES];
-int gc_roots_count = 0;
+void* gc_ref_tab[GC_MAX_REF_COUNT];
+int gc_ref_count = 0;
 
 // need to be aligned!
 typedef char byte;
@@ -227,8 +231,52 @@ void gc_reset()
   FLAGS(&gc_major_heap[0]) = GC_MAJOR_HEAP_SIZE;
 }
 
-void gc_register_ref(void** tab, int count)
+void gc_add_ref(void* ref)
 {
+  if ( !POINTS_MINOR(ref) && !POINTS_MAJOR(ref) ) return;
+  int i;
+  for(i=0; i < gc_ref_count; ++i)
+    if ( gc_ref_tab[i] == ref ) return;
+  
+  for(i=0; i < gc_ref_count; ++i)
+    if ( gc_ref_tab[i] == 0 ) 
+      {
+	gc_ref_tab[i] = ref;
+	return;
+      }
+  assert(gc_ref_count < GC_MAX_REF_COUNT);
+  gc_ref_tab[gc_ref_count++] = ref;
+  return;
+}
+
+void gc_remove_ref(void* ref)
+{
+  if ( !POINTS_MINOR(ref) && !POINTS_MAJOR(ref) ) return;
+  int i;
+  for(i=0; i < gc_ref_count-1; ++i)
+      if ( gc_ref_tab[i] == ref ) { gc_ref_tab[i] = 0; return; }
+
+  if ( gc_ref_tab[gc_ref_count-1] == ref ) gc_ref_count--;
+
+}
+
+void gc_print_refs()
+{
+  int i;
+  printf("**List of stored references. %d references.\n", gc_ref_count);
+  for(i=0; i < gc_ref_count; ++i)
+    {
+      if ( gc_ref_tab[i] != 0 )
+	{
+	  char* points_to = "??";
+	  if ( POINTS_MINOR(gc_ref_tab[i]) ) points_to = "minor";
+	  if ( POINTS_MAJOR(gc_ref_tab[i]) ) points_to = "major";
+	  printf("\tReference at %p(%s)\t->\t%p\n", gc_ref_tab[i], points_to, *((void**)gc_ref_tab[i]));
+	}
+      else
+	printf("\tEmpty slot\n");
+    }
+  printf("**End of stored ref list\n");
   
 }
 
@@ -332,6 +380,45 @@ assert(major_alloc(4)!= 0);
 gc_print_major();
 END_TEST()
 
+// Refs test
+BEGIN_TEST(09)
+// Initial empty ref table
+gc_print_refs();
+// Adding invalid reference, shouldnt alter the table
+gc_add_ref(0);
+gc_print_refs();
+
+// adding one reference from minor heap
+gc_add_ref(&gc_minor_heap[0]);
+gc_print_refs();
+
+// lets assign a value so printing will yield result
+*((void**)&gc_minor_heap[0]) = (void*)0x123456;
+// invalid minor pointer
+gc_add_ref(&gc_minor_heap[GC_MINOR_HEAP_SIZE]);
+// last pointer on minor heap
+gc_add_ref(&gc_minor_heap[GC_MINOR_HEAP_SIZE-sizeof(int)]);
+// invalid major heap pointer
+gc_add_ref(&gc_major_heap[GC_MAJOR_HEAP_SIZE]);
+// last pointer on major heap
+gc_add_ref(&gc_major_heap[GC_MAJOR_HEAP_SIZE-sizeof(int)]);
+gc_print_refs();
+// remove last pointer
+gc_remove_ref(&gc_major_heap[GC_MAJOR_HEAP_SIZE-sizeof(int)]);
+// replace with minor heap ref (which is already, does nothing)
+gc_add_ref(&gc_minor_heap[GC_MINOR_HEAP_SIZE-sizeof(int)]);
+gc_print_refs();
+// add pointer at the end
+gc_add_ref(&gc_minor_heap[GC_MINOR_HEAP_SIZE-sizeof(int)-sizeof(int)]);
+gc_print_refs();
+// remove last pointer
+gc_remove_ref(&gc_minor_heap[GC_MINOR_HEAP_SIZE-sizeof(int)-sizeof(int)]);
+gc_print_refs();
+gc_remove_ref(&gc_minor_heap[0]);
+gc_print_refs();
+gc_add_ref(&gc_minor_heap[0]);
+gc_print_refs();
+END_TEST()
 
 int main()
 {
@@ -343,6 +430,7 @@ int main()
   test_06();
   test_07();
   test_08();
+  test_09();
   return 0;
 }
 
