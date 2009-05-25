@@ -53,6 +53,10 @@
 #define MARKED(ch) (FLAGS(ch) & 1)
 #define CHUNK_OFFSET(ch) ((((ch))-&gc_minor_heap[0])/GC_MINOR_CHUNK_SIZE)
 
+#define FOR_EACH_MINCH(ch)  for(i=0; i < gc_cur_min_chunk; ++i) { \
+  byte *ch = CHUNK_AT(i); do { } while(0)
+#define END_FOR_EACH() }
+
 /*
 typedef struct
 {
@@ -146,23 +150,6 @@ void* major_alloc(int size)
   return (void*)free_chunk;
 }
 
-/*
-void reloc_minor()
-{
-  memset(gc_minor_relocated, 0, sizeof(gc_minor_relocated));
-  int i;
-  for(i=0; i < gc_cur_min_chunk; ++i)
-    {
-      byte* ch = CHUNK_AT(i);
-      if ( MARKED(ch) ) 
-	{
-	  
-	}
-      }
-    }
-}
-*/
-
 void backpatch_chunk(byte* ch)
 {
   int i;
@@ -186,32 +173,33 @@ void backpatch_chunk(byte* ch)
 void copy_minor_heap()
 {
   int i;
-  for(i=0; i < gc_cur_min_chunk; ++i)
-    {
-      byte *ch = CHUNK_AT(i);
-      if ( MARKED(ch) )
-	{
-	  void* ptr = major_alloc(WITHOUT_HEADER(CHUNK_SIZE(ch)));
-	  assert( ptr != 0 );
-	  gc_backpatch_table[i] = ptr;
-	}
+  FOR_EACH_MINCH(ch);
+  {
+    if ( MARKED(ch) )
+      {
+	void* ptr = major_alloc(WITHOUT_HEADER(CHUNK_SIZE(ch)));
+	assert( ptr != 0 );
+	gc_backpatch_table[i] = ptr;
+      }
+  }
+  END_FOR_EACH();
+		 
+  FOR_EACH_MINCH(ch);
+  {
+    backpatch_chunk(ch);
+  }
+  END_FOR_EACH();
+  
+  FOR_EACH_MINCH(ch);
+  {
+    if ( MARKED(ch) )
+      {
+	byte* new_ptr = (byte*)gc_backpatch_table[i];
+	assert(new_ptr != 0);
+	memcpy(new_ptr, ch, CHUNK_SIZE(ch));
+      }
     }
-  
-  for(i=0; i < gc_cur_min_chunk; ++i)
-    backpatch_chunk(CHUNK_AT(i));
-  
-  
-  for(i=0; i < gc_cur_min_chunk; ++i)
-    {
-      byte *ch = CHUNK_AT(i);
-      if ( MARKED(ch) )
-	{
-	  byte* new_ptr = (byte*)gc_backpatch_table[i];
-	  assert(new_ptr != 0);
-	  memcpy(new_ptr, ch, CHUNK_SIZE(ch));
-	}
-    }
-  
+  END_FOR_EACH();
 }
 
 void collect_minor()
@@ -277,11 +265,11 @@ void gc_print_minor()
 {
   printf("**List of minor heap allocated %d chunks\n", gc_cur_min_chunk);
   int i;
-  for(i=0; i < gc_cur_min_chunk; ++i)
-    {
-      byte *ch = CHUNK_AT(i);
-      printf("\tchunk %.4d\tsize %.3d\tmarked %c\n", CHUNK_OFFSET(ch), CHUNK_SIZE(ch), (MARKED(ch) ? 'y' : 'n'));
-    }
+  FOR_EACH_MINCH(ch);
+  {
+    printf("\tchunk %.4d\tsize %.3d\tmarked %c\n", CHUNK_OFFSET(ch), CHUNK_SIZE(ch), (MARKED(ch) ? 'y' : 'n'));
+  }
+  END_FOR_EACH();
   printf("**End of minor chunks list\n");
 }
 
