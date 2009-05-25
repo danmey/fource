@@ -51,6 +51,7 @@
 #define REF_PTR(ptr) (MEM_TAG((ptr)) && POINTS_MINOR((ptr)))
 // Is it marked?
 #define MARKED(ch) (FLAGS(ch) & 1)
+#define CHUNK_OFFSET(ch) ((((ch))-&gc_minor_heap[0])/GC_MINOR_CHUNK_SIZE)
 
 /*
 typedef struct
@@ -173,7 +174,7 @@ void backpatch_chunk(byte* ch)
 	  byte* ref_ch = MINOR_CHUNK(ptr);
 	  if ( MARKED(ref_ch) )
 	    {
-	      void* new_ptr = gc_backpatch_table[MINOR_CHUNK[ref_ch]];
+	      byte* new_ptr = (byte*)gc_backpatch_table[CHUNK_OFFSET(ref_ch)];
 	      assert(new_ptr != 0);
 	      unsigned int delta = new_ptr-ref_ch;
 	      *ptr += delta;
@@ -190,21 +191,32 @@ void copy_minor_heap()
       byte *ch = CHUNK_AT(i);
       if ( MARKED(ch) )
 	{
-	  void* ptr = major_alloc(CHUNK_SIZE(ch));
+	  void* ptr = major_alloc(WITHOUT_HEADER(CHUNK_SIZE(ch)));
 	  assert( ptr != 0 );
 	  gc_backpatch_table[i] = ptr;
 	}
     }
+  
+  for(i=0; i < gc_cur_min_chunk; ++i)
+    backpatch_chunk(CHUNK_AT(i));
+  
+  
   for(i=0; i < gc_cur_min_chunk; ++i)
     {
-      backpatch_chunk(CHUNK_AT(i));
+      byte *ch = CHUNK_AT(i);
+      if ( MARKED(ch) )
+	{
+	  byte* new_ptr = (byte*)gc_backpatch_table[i];
+	  assert(new_ptr != 0);
+	  memcpy(new_ptr, ch, CHUNK_SIZE(ch));
+	}
     }
-
+  
 }
 
 void collect_minor()
 {
-  
+  copy_minor_heap();
 }
 
 void* minor_alloc(int size)
@@ -237,7 +249,6 @@ void* gc_alloc(int size)
 }
 */
 
-#define CHUNK_OFFSET(ch) ((((ch))-&gc_minor_heap[0])/GC_MINOR_CHUNK_SIZE)
 
 void gc_print_major()
 {
@@ -498,6 +509,7 @@ END_TEST()
 
 // Test for backpatch table
 BEGIN_TEST(10)
+gc_reset();
 unsigned int* ptr1 = minor_alloc(60);
 unsigned int* ptr2 = minor_alloc(60);
 unsigned int* ptr3 = minor_alloc(60);
@@ -510,6 +522,9 @@ ptr3[5] = (unsigned int)ptr4;
 ptr4[6] = (unsigned int)ptr5;
 ptr5[7] = (unsigned int)ptr1;
 mark_minor(refs, 1);
+copy_minor_heap();
+gc_print_minor();
+gc_print_major();
 //gc_print_backpatch();
 gc_reset();
 END_TEST()
