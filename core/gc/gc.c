@@ -178,6 +178,7 @@ void copy_minor_heap()
     if ( MARKED(ch) )
       {
 	void* ptr = major_alloc(WITHOUT_HEADER(CHUNK_SIZE(ch)));
+	printf("%d", WITHOUT_HEADER(CHUNK_SIZE(ch)));
 	assert( ptr != 0 );
 	gc_backpatch_table[i] = ptr;
       }
@@ -211,9 +212,9 @@ void* minor_alloc(int size)
 {
   if ( size == 0 ) return 0;
   //  assert(size != 0);
-  size = ALIGN(size);
+  size = WITH_HEADER(ALIGN(size));
 
-  if ( size > (WITHOUT_HEADER(GC_MINOR_CHUNK_SIZE)) )
+  if ( size > GC_MINOR_CHUNK_SIZE) 
     return 0; //major_alloc(size);
 
   if ( gc_cur_min_chunk >= GC_MINOR_CHUNKS )
@@ -498,11 +499,11 @@ END_TEST()
 // Test for backpatch table
 BEGIN_TEST(10)
 gc_reset();
-unsigned int* ptr1 = minor_alloc(60);
-unsigned int* ptr2 = minor_alloc(60);
-unsigned int* ptr3 = minor_alloc(60);
-unsigned int* ptr4 = minor_alloc(60);
-unsigned int* ptr5 = minor_alloc(60);
+unsigned int* ptr1 = minor_alloc(4);
+unsigned int* ptr2 = minor_alloc(4);
+unsigned int* ptr3 = minor_alloc(4);
+unsigned int* ptr4 = minor_alloc(4);
+unsigned int* ptr5 = minor_alloc(4);
 void* refs[] = { ptr1 };
 ptr1[3] = (unsigned int)ptr2;
 ptr2[4] = (unsigned int)ptr3;
