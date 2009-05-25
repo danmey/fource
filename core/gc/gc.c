@@ -15,6 +15,8 @@
 
 #define WITH_HEADER(size) ((size) + sizeof(int))
 #define WITHOUT_HEADER(size) ((size) - sizeof(int))
+#define PTR_INDEX(ofs) ((ofs)/sizeof(void*))
+#define BYTE_INDEX(ofs) ((ofs)*sizeof(void*))
 
 #define GC_MINOR_RAW_CHUNK_SIZE (WITHOUT_HEADER((GC_MINOR_CHUNK_SIZE)))
 
@@ -72,8 +74,7 @@ byte gc_minor_heap[GC_MINOR_HEAP_SIZE];
 byte gc_major_heap[GC_MAJOR_HEAP_SIZE];
 // Points to free chunk
 int gc_cur_min_chunk = 0;
-void* gc_minor_relocated[GC_MINOR_CHUNKS][2];
-void** gc_backpatch_table[GC_MINOR_HEAP_SIZE][2];
+void* gc_backpatch_table[GC_MINOR_CHUNKS];
 
 //byte* gc_mj_ptr = gc_major_heap;
 // Some logging/debugging facilities
@@ -91,14 +92,14 @@ void mark_chunk(byte* ch)
   MARK_CHUNK(ch, GC_MARKED);
   LOG("Starting marking chunk: %d", ch-&gc_minor_heap[0]);
   int i;
-  for(i=0; i < CHUNK_SIZE(ch)/sizeof(void*); ++i)
+  for(i=0; i < PTR_INDEX(CHUNK_SIZE(ch)); ++i)
     {
       if ( REF_PTR(BITS_AT(ch,i)) )
         {
 	  byte* ptr = BITS_AT(ch,i);
 	  byte* ref_ch = MINOR_CHUNK(ptr);
-	  int idx = (ptr-&gc_minor_heap[0])/4;
-	  gc_backpatch_table[idx][0] = (void*)ptr;
+	  int idx = (ch-&gc_minor_heap[0]);
+	  //	  gc_backpatch_table[PTR_INDEX(idx)][0] = (void*)ptr;
 	  if ( !MARKED(ref_ch) )
 	    mark_chunk(ref_ch);
         }
@@ -160,6 +161,39 @@ void reloc_minor()
     }
 }
 */
+
+void backpatch_chunk(byte* ch)
+{
+  int i;
+  for(i=0; i < PTR_INDEX(CHUNK_SIZE(ch)); ++i)
+    {
+      if ( REF_PTR(BITS_AT(ch,i)) )
+        {
+	  byte* ptr = BITS_AT(ch,i);
+	  byte* ref_ch = MINOR_CHUNK(ptr);
+	  int idx = (ch-&gc_minor_heap[0]);
+	  //	  gc_backpatch_table[PTR_INDEX(idx)][0] = (void*)ptr;
+	  if ( !MARKED(ref_ch) )
+	    mark_chunk(ref_ch);
+        }
+    }
+}
+
+void copy_minor()
+{
+  int i;
+  for(i=0; i < gc_cur_min_chunk; ++i)
+    {
+      byte *ch = CHUNK_AT(i);
+      if ( MARKED(ch) )
+	{
+	  void* ptr = major_alloc(CHUNK_SIZE(ch));
+	  assert( ptr != 0 );
+	  gc_backpatch_table[i] = ptr;
+	}
+    }
+}
+
 void collect_minor()
 {
   
@@ -208,12 +242,13 @@ void gc_print_major()
     {
       int fl = CHUNK_FLAGS(cur);
       char* ch_type = 0;
-      switch(fl) {
-      case GC_FLAG_FREE: ch_type = "free"; break;
-      case GC_COL_WHITE: ch_type = "white"; break;
-      case GC_COL_GREY:  ch_type = "grey"; break;
-      case GC_COL_BLACK: ch_type = "black"; break;
-      }
+      switch(fl) 
+	{
+	case GC_FLAG_FREE: ch_type = "free"; break;
+	case GC_COL_WHITE: ch_type = "white"; break;
+	case GC_COL_GREY:  ch_type = "grey"; break;
+	case GC_COL_BLACK: ch_type = "black"; break;
+	}
       printf("\tsize %.3d\tmarked %s\n", CHUNK_SIZE(cur), ch_type);
     }
   printf("**End of major chunks list\n");
@@ -288,23 +323,27 @@ void gc_print_refs()
   printf("**End of stored ref list\n");
 }
 
+/*
 void gc_print_backpatch()
 {
   printf("**Printing backpatch table.\n");
   int i;
-  for(i=0; i<GC_MINOR_HEAP_SIZE/4; ++i)
+  for(i=0; i<PTR_INDEX(GC_MINOR_HEAP_SIZE); ++i)
     {
-      if ( gc_backpatch_table[i][0] != 0 )
+      byte* ptr = (byte*)gc_backpatch_table[i][0];
+      if ( ptr != 0 )
 	{
-	  byte* ch1 = MINOR_CHUNK(gc_backpatch_table[i][0]);
-	  int idx1 = CHUNK_OFFSET(ch1);
-	  byte* ch2 = MINOR_CHUNK(*gc_backpatch_table[i][0]);
-	  int idx2 = CHUNK_OFFSET(ch2);
-	  printf("\tminor chunk %d at %d -> %d at %d\n", idx1, 0, idx2, 0);
+	  int mem_offset = BYTE_INDEX(i);
+	  int first_index = mem_offset/GC_MINOR_CHUNK_SIZE;
+	  int first_offset = PTR_INDEX(mem_offset % GC_MINOR_CHUNK_SIZE);
+	  int second_index = CHUNK_OFFSET(ptr);
+	  int second_offset = PTR_INDEX((WITHOUT_HEADER((byte*)ptr - &gc_minor_heap[0])%GC_MINOR_CHUNK_SIZE));
+	  printf("\tminor chunk %d at %d -> %d at %d\n", first_index, first_offset, second_index, second_offset);
 	}
     }
   printf("**End of backpatch table.\n");
 }
+*/
 
 // Basic boundary check for allocation of different sizes of chunks 
 BEGIN_TEST(01)
@@ -342,7 +381,6 @@ void* refs[] = { ptr1 };
 *ptr2 = (unsigned int)ptr3;
 mark_minor(refs, 1);
 gc_print_minor();
-gc_print_backpatch();
 gc_reset();
 END_TEST()
 
@@ -450,6 +488,24 @@ gc_add_ref(&gc_minor_heap[0]);
 gc_print_refs();
 END_TEST()
 
+// Test for backpatch table
+BEGIN_TEST(10)
+unsigned int* ptr1 = minor_alloc(60);
+unsigned int* ptr2 = minor_alloc(60);
+unsigned int* ptr3 = minor_alloc(60);
+unsigned int* ptr4 = minor_alloc(60);
+unsigned int* ptr5 = minor_alloc(60);
+void* refs[] = { ptr1 };
+ptr1[3] = (unsigned int)ptr2;
+ptr2[4] = (unsigned int)ptr3;
+ptr3[5] = (unsigned int)ptr4;
+ptr4[6] = (unsigned int)ptr5;
+ptr5[7] = (unsigned int)ptr1;
+mark_minor(refs, 1);
+//gc_print_backpatch();
+gc_reset();
+END_TEST()
+
 int main()
 {
   test_01();
@@ -461,6 +517,7 @@ int main()
   test_07();
   test_08();
   test_09();
+  test_10();
   return 0;
 }
 
