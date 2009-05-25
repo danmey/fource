@@ -171,15 +171,18 @@ void backpatch_chunk(byte* ch)
         {
 	  byte* ptr = BITS_AT(ch,i);
 	  byte* ref_ch = MINOR_CHUNK(ptr);
-	  int idx = (ch-&gc_minor_heap[0]);
-	  //	  gc_backpatch_table[PTR_INDEX(idx)][0] = (void*)ptr;
-	  if ( !MARKED(ref_ch) )
-	    mark_chunk(ref_ch);
+	  if ( MARKED(ref_ch) )
+	    {
+	      void* new_ptr = gc_backpatch_table[MINOR_CHUNK[ref_ch]];
+	      assert(new_ptr != 0);
+	      unsigned int delta = new_ptr-ref_ch;
+	      *ptr += delta;
+	    }
         }
     }
 }
 
-void copy_minor()
+void copy_minor_heap()
 {
   int i;
   for(i=0; i < gc_cur_min_chunk; ++i)
@@ -192,6 +195,11 @@ void copy_minor()
 	  gc_backpatch_table[i] = ptr;
 	}
     }
+  for(i=0; i < gc_cur_min_chunk; ++i)
+    {
+      backpatch_chunk(CHUNK_AT(i));
+    }
+
 }
 
 void collect_minor()
