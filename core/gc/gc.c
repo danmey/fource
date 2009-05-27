@@ -53,16 +53,16 @@
 #define MARKED(ch) (FLAGS(ch) & 1)
 #define CHUNK_OFFSET(ch) ((((ch))-&gc_minor_heap[0])/GC_MINOR_CHUNK_SIZE)
 
-#define FOR_EACH_MINCH(ch)  for(i=0; i < gc_cur_min_chunk; ++i) { \
+#define FOR_EACH_MINCH(ch)  for(i=0; i < gc_cur_min_chunk; ++i) {	\
   byte *ch = CHUNK_AT(i); do { } while(0)
 #define END_FOR_EACH() }
 
 /*
-typedef struct
-{
+  typedef struct
+  {
   int count;
   void *ptr;
-} gc_ref_t;
+  } gc_ref_t;
 */
 
 void* gc_ref_tab[GC_MAX_REF_COUNT];
@@ -163,8 +163,8 @@ void backpatch_chunk(byte* ch)
 	    {
 	      byte* new_ptr = (byte*)gc_backpatch_table[CHUNK_OFFSET(ref_ch)];
 	      assert(new_ptr != 0);
-	      unsigned int delta = new_ptr-ref_ch;
-	      *ptr += delta;
+	      int delta = new_ptr-ref_ch;
+	      BITS_AT(ch,i) += delta;
 	    }
         }
     }
@@ -178,7 +178,6 @@ void copy_minor_heap()
     if ( MARKED(ch) )
       {
 	void* ptr = major_alloc(WITHOUT_HEADER(CHUNK_SIZE(ch)));
-	printf("%d", WITHOUT_HEADER(CHUNK_SIZE(ch)));
 	assert( ptr != 0 );
 	gc_backpatch_table[i] = ptr;
       }
@@ -496,7 +495,9 @@ gc_add_ref(&gc_minor_heap[0]);
 gc_print_refs();
 END_TEST()
 
-// Test for backpatch table
+#define MIN_OFFS(ptr) (PTR_INDEX(((byte*)ptr-&gc_minor_heap[0])))
+#define MAJ_OFFS(ptr) (PTR_INDEX(((byte*)ptr-&gc_major_heap[0])))
+// Test for backaprthing one pass
 BEGIN_TEST(10)
 gc_reset();
 unsigned int* ptr1 = minor_alloc(4);
@@ -505,14 +506,49 @@ unsigned int* ptr3 = minor_alloc(4);
 unsigned int* ptr4 = minor_alloc(4);
 unsigned int* ptr5 = minor_alloc(4);
 void* refs[] = { ptr1 };
-ptr1[3] = (unsigned int)ptr2;
-ptr2[4] = (unsigned int)ptr3;
-ptr3[5] = (unsigned int)ptr4;
-ptr4[6] = (unsigned int)ptr5;
-ptr5[7] = (unsigned int)ptr1;
+ptr1[0] = (unsigned int)ptr2;
+ptr2[0] = (unsigned int)ptr3;
+ptr3[0] = (unsigned int)ptr4;
+ptr4[0] = (unsigned int)ptr5;
+ptr5[0] = (unsigned int)ptr1;
+
+printf("**Printing referenced minor heap offsets\n");
+printf("\t%d\n", MIN_OFFS(ptr1[0]));
+printf("\t%d\n", MIN_OFFS(ptr2[0]));
+printf("\t%d\n", MIN_OFFS(ptr3[0]));
+printf("\t%d\n", MIN_OFFS(ptr4[0]));
+printf("\t%d\n", MIN_OFFS(ptr5[0]));
 mark_minor(refs, 1);
 copy_minor_heap();
-gc_print_minor();
+printf("**Printing referenced major heap offsets\n");
+printf("\t%d\n", MAJ_OFFS(ptr1[0]));
+printf("\t%d\n", MAJ_OFFS(ptr2[0]));
+printf("\t%d\n", MAJ_OFFS(ptr3[0]));
+printf("\t%d\n", MAJ_OFFS(ptr4[0]));
+printf("\t%d\n", MAJ_OFFS(ptr5[0]));
+gc_print_major();
+//gc_print_backpatch();
+gc_reset();
+END_TEST()
+
+// Test for backpatching circular list, with more slots
+BEGIN_TEST(11)
+gc_reset();
+unsigned int* ptr1 = minor_alloc(4);
+unsigned int* ptr2 = minor_alloc(4);
+void* refs[] = { ptr1 };
+ptr1[0] = (unsigned int)ptr2;
+ptr2[0] = (unsigned int)ptr1;
+ptr1[1] = (unsigned int)ptr1;
+ptr2[1] = (unsigned int)ptr2;
+printf("**Printing referenced minor heap offsets\n");
+printf("\t%d\t%d\n", MIN_OFFS(ptr1[0]), MIN_OFFS(ptr1[1]));
+printf("\t%d\t%d\n", MIN_OFFS(ptr2[0]), MIN_OFFS(ptr2[1]));
+mark_minor(refs, 1);
+copy_minor_heap();
+printf("**Printing referenced major heap offsets\n");
+printf("\t%d\t%d\n", MAJ_OFFS(ptr1[0]),MAJ_OFFS(ptr1[1]));
+printf("\t%d\t%d\n", MAJ_OFFS(ptr2[0]),MAJ_OFFS(ptr2[1]));
 gc_print_major();
 //gc_print_backpatch();
 gc_reset();
@@ -530,7 +566,7 @@ int main()
   test_08();
   test_09();
   test_10();
+  test_11();
   return 0;
 }
 
-  
