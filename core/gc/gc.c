@@ -111,15 +111,15 @@ void mark_chunk(byte* ch)
     }
 }
 
-void mark_minor(void* refs[], int count)
+void mark_minor()                  
 {
   memset(gc_backpatch_table, 0, sizeof(gc_backpatch_table));
   int i;
-  for(i=0; i<count; ++i)
+  for(i=0; i < gc_ref_count; ++i)
     {
-      if ( REF_PTR(refs[i]) )
+      if ( gc_ref_tab[i] != 0 && REF_PTR(gc_ref_tab[i]) )
         {
-	  byte* ch = MINOR_CHUNK(refs[i]);
+	  byte* ch = MINOR_CHUNK(gc_ref_tab[i]);
 	  mark_chunk(ch);
         }
     }
@@ -307,7 +307,6 @@ void gc_remove_ref(void* ref)
       if ( gc_ref_tab[i] == ref ) { gc_ref_tab[i] = 0; return; }
 
   if ( gc_ref_tab[gc_ref_count-1] == ref ) gc_ref_count--;
-
 }
 
 void gc_print_refs()
@@ -369,13 +368,14 @@ END_TEST()
 
 // Basic collection test wihtout referencing elements 
 BEGIN_TEST(02)
-  unsigned int* ptr1 = minor_alloc(4);
-  unsigned int* ptr2 = minor_alloc(4);
-  unsigned int* ptr3 = minor_alloc(4);
-  void* refs[] = { ptr1, ptr3 };
-  mark_minor(refs, 2 );
-  gc_print_minor();
-  gc_reset();
+unsigned int* ptr1 = minor_alloc(4);
+unsigned int* ptr2 = minor_alloc(4);
+unsigned int* ptr3 = minor_alloc(4);
+gc_add_ref(ptr1);
+gc_add_ref(ptr3);
+mark_minor();
+gc_print_minor();
+gc_reset();
 END_TEST()
 
 // Linked list test 
@@ -383,10 +383,10 @@ BEGIN_TEST(03)
 unsigned int* ptr1 = minor_alloc(4);
 unsigned int* ptr2 = minor_alloc(4);
 unsigned int* ptr3 = minor_alloc(4);
-void* refs[] = { ptr1 };
 *ptr1 = (unsigned int)ptr2;
 *ptr2 = (unsigned int)ptr3;
-mark_minor(refs, 1);
+gc_add_ref(ptr1);
+mark_minor();
 gc_print_minor();
 gc_reset();
 END_TEST()
@@ -397,11 +397,11 @@ BEGIN_TEST(04)
 unsigned int* ptr1 = minor_alloc(4);
 unsigned int* ptr2 = minor_alloc(4);
 unsigned int* ptr3 = minor_alloc(4);
-void* refs[] = { ptr1 };
+gc_add_ref(ptr1);
 *ptr1 = (unsigned int)ptr2;
 *ptr2 = (unsigned int)ptr3;
 *ptr3 = (unsigned int)ptr1;
-mark_minor(refs, 1);
+mark_minor();
 gc_print_minor();
 
   gc_reset();
@@ -413,7 +413,7 @@ BEGIN_TEST(05)
   unsigned int* ptr2 = minor_alloc(252);
   unsigned int* ptr3 = minor_alloc(252);
   unsigned int* ptr4 = minor_alloc(252);
-  void* refs[] = { ptr1 };
+gc_add_ref(ptr1);
   ptr1[0] = (unsigned int)ptr2;
   ptr1[3] = 3;
   ptr1[4] = 5;
@@ -421,7 +421,7 @@ BEGIN_TEST(05)
   ptr1[60] = -1;
   ptr1[61] = -3;
   ptr1[62] = (unsigned int)ptr4;
-  mark_minor(refs, 1);
+  mark_minor();
   gc_print_minor();
   gc_reset();
 END_TEST()
@@ -518,7 +518,8 @@ printf("\t%d\n", MIN_OFFS(ptr2[0]));
 printf("\t%d\n", MIN_OFFS(ptr3[0]));
 printf("\t%d\n", MIN_OFFS(ptr4[0]));
 printf("\t%d\n", MIN_OFFS(ptr5[0]));
-mark_minor(refs, 1);
+gc_add_ref(ptr1);
+mark_minor();
 copy_minor_heap();
 printf("**Printing referenced major heap offsets\n");
 printf("\t%d\n", MAJ_OFFS(ptr1[0]));
@@ -544,7 +545,8 @@ ptr2[1] = (unsigned int)ptr2;
 printf("**Printing referenced minor heap offsets\n");
 printf("\t%d\t%d\n", MIN_OFFS(ptr1[0]), MIN_OFFS(ptr1[1]));
 printf("\t%d\t%d\n", MIN_OFFS(ptr2[0]), MIN_OFFS(ptr2[1]));
-mark_minor(refs, 1);
+gc_add_ref(ptr1);
+mark_minor();
 copy_minor_heap();
 printf("**Printing referenced major heap offsets\n");
 printf("\t%d\t%d\n", MAJ_OFFS(ptr1[0]),MAJ_OFFS(ptr1[1]));
@@ -552,6 +554,11 @@ printf("\t%d\t%d\n", MAJ_OFFS(ptr2[0]),MAJ_OFFS(ptr2[1]));
 gc_print_major();
 //gc_print_backpatch();
 gc_reset();
+END_TEST()
+
+// Test for backpathing references
+BEGIN_TEST(12)
+
 END_TEST()
 
 int main()
