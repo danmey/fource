@@ -297,6 +297,7 @@ void copy_minor_heap()
 void collect_minor()
 {
   copy_minor_heap();
+  gc_cur_min_chunk = 0;
 }
 
 void* minor_alloc(int size)
