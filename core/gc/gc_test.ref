@@ -60,33 +60,36 @@ Running test 09
 **List of stored references. 0 references.
 **End of stored ref list
 **List of stored references. 1 references.
-	Reference at offset 00000000(minor)	->	(nil)
+	Reference pointing to 00000000(minor)	
+**End of stored ref list
+**List of stored references. 2 references.
+	Reference pointing to 00000000(minor)	
+	Reference pointing to 0000fffc(minor)	
+**End of stored ref list
+**List of stored references. 2 references.
+	Reference pointing to 00000000(minor)	
+	Reference pointing to 0000fffc(minor)	
 **End of stored ref list
 **List of stored references. 3 references.
-	Reference at offset 00000000(minor)	->	0x123456
-	Reference at offset 0000fffc(minor)	->	(nil)
-	Reference at offset 01fffffc(major)	->	(nil)
-**End of stored ref list
-**List of stored references. 2 references.
-	Reference at offset 00000000(minor)	->	0x123456
-	Reference at offset 0000fffc(minor)	->	(nil)
+	Reference pointing to 00000000(minor)	
+	Reference pointing to 0000fffc(minor)	
+	Reference pointing to 0000fff8(minor)	
 **End of stored ref list
 **List of stored references. 3 references.
-	Reference at offset 00000000(minor)	->	0x123456
-	Reference at offset 0000fffc(minor)	->	(nil)
-	Reference at offset 0000fff8(minor)	->	(nil)
+	Reference pointing to 00000000(minor)	
+	Reference pointing to 0000fffc(minor)	
+	Reference pointing to 0000fff8(minor)	
 **End of stored ref list
-**List of stored references. 2 references.
-	Reference at offset 00000000(minor)	->	0x123456
-	Reference at offset 0000fffc(minor)	->	(nil)
+**List of stored references. 3 references.
+	Reference pointing to 00000000(minor)	
+	Reference pointing to 0000fffc(minor)	
+	Reference pointing to 0000fff8(minor)	
 **End of stored ref list
-**List of stored references. 2 references.
-	Empty slot
-	Reference at offset 0000fffc(minor)	->	(nil)
-**End of stored ref list
-**List of stored references. 2 references.
-	Reference at offset 00000000(minor)	->	0x123456
-	Reference at offset 0000fffc(minor)	->	(nil)
+**List of stored references. 4 references.
+	Reference pointing to 00000000(minor)	
+	Reference pointing to 0000fffc(minor)	
+	Reference pointing to 0000fff8(minor)	
+	Reference pointing to 00000000(minor)	
 **End of stored ref list
 Test 09 completed
 Running test 10
