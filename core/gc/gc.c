@@ -65,7 +65,7 @@
   } gc_ref_t;
 */
 
-void* gc_ref_tab[GC_MAX_REF_COUNT];
+void** gc_ref_tab[GC_MAX_REF_COUNT];
 int gc_ref_count = 0;
 
 // need to be aligned!
@@ -75,6 +75,7 @@ typedef char byte;
 
 // Our first generation heap
 byte gc_minor_heap[GC_MINOR_HEAP_SIZE];
+byte sep[1024];
 // Elder generation heap
 byte gc_major_heap[GC_MAJOR_HEAP_SIZE];
 // Points to free chunk
@@ -117,14 +118,13 @@ void mark_minor()
   int i;
   for(i=0; i < gc_ref_count; ++i)
     {
-      if ( gc_ref_tab[i] != 0 && REF_PTR(gc_ref_tab[i]) )
+      if ( gc_ref_tab[i] != 0 && REF_PTR(*gc_ref_tab[i]) )
         {
-	  byte* ch = MINOR_CHUNK(gc_ref_tab[i]);
+	  byte* ch = MINOR_CHUNK(*gc_ref_tab[i]);
 	  mark_chunk(ch);
         }
     }
 }
-
 
 void* major_alloc(int size)
 {
@@ -170,6 +170,29 @@ void backpatch_chunk(byte* ch)
     }
 }
 
+void backpatch_refs()
+{
+  int i;
+  for(i=0; i < gc_ref_count; ++i)
+    {
+      if ( gc_ref_tab[i] != 0 ) 
+	{
+	  void* ptr = *(void**)gc_ref_tab[i];
+	  if ( POINTS_MINOR(ptr) ) 
+	    {
+	      byte* ch = MINOR_CHUNK(ptr);
+	      byte* new_ptr = (byte*)gc_backpatch_table[CHUNK_OFFSET(ch)];
+	      if ( new_ptr != 0 ) 
+		{
+		  int delta = new_ptr-ch;
+		  *(void**)ptr += delta;
+		}
+	    }
+	}
+    }
+  
+}
+
 void copy_minor_heap()
 {
   int i;
@@ -200,6 +223,7 @@ void copy_minor_heap()
       }
     }
   END_FOR_EACH();
+  // backpatch_refs();
 }
 
 void collect_minor()
@@ -281,9 +305,10 @@ void gc_reset()
   gc_ref_count = 0;
 }
 
-void gc_add_ref(void* ref)
+void gc_add_ref(void* r)
 {
-  if ( !POINTS_MINOR(ref) && !POINTS_MAJOR(ref) ) return;
+  void** ref = r;
+  if ( r == 0 || (!POINTS_MINOR(*ref) && !POINTS_MAJOR(*ref)) ) return;
   int i;
   for(i=0; i < gc_ref_count; ++i)
     if ( gc_ref_tab[i] == ref ) return;
@@ -301,7 +326,7 @@ void gc_add_ref(void* ref)
 
 void gc_remove_ref(void* ref)
 {
-  if ( !POINTS_MINOR(ref) && !POINTS_MAJOR(ref) ) return;
+  //  if ( !POINTS_MINOR(ref) && !POINTS_MAJOR(ref) ) return;
   int i;
   for(i=0; i < gc_ref_count-1; ++i)
       if ( gc_ref_tab[i] == ref ) { gc_ref_tab[i] = 0; return; }
@@ -319,9 +344,9 @@ void gc_print_refs()
 	{
 	  char* points_to = "??";
 	  void* heap = 0;
-	  if ( POINTS_MINOR(gc_ref_tab[i]) ) { points_to = "minor"; heap = gc_minor_heap;}
-	  if ( POINTS_MAJOR(gc_ref_tab[i]) ) {points_to = "major";heap = gc_major_heap;}
-	  printf("\tReference at offset %.8x(%s)\t->\t%p\n", gc_ref_tab[i] - heap, points_to, *((void**)gc_ref_tab[i]));
+	  if ( POINTS_MINOR(*gc_ref_tab[i]) ) { points_to = "minor"; heap = gc_minor_heap;}
+	  if ( POINTS_MAJOR(*gc_ref_tab[i]) ) {points_to = "major";heap = gc_major_heap;}
+	  printf("\tReference pointing to %.8x(%s)\t\n", *gc_ref_tab[i] - heap, points_to, *gc_ref_tab[i]);
 	}
       else
 	printf("\tEmpty slot\n");
@@ -371,8 +396,8 @@ BEGIN_TEST(02)
 unsigned int* ptr1 = minor_alloc(4);
 unsigned int* ptr2 = minor_alloc(4);
 unsigned int* ptr3 = minor_alloc(4);
-gc_add_ref(ptr1);
-gc_add_ref(ptr3);
+gc_add_ref(&ptr1);
+gc_add_ref(&ptr3);
 mark_minor();
 gc_print_minor();
 gc_reset();
@@ -385,7 +410,7 @@ unsigned int* ptr2 = minor_alloc(4);
 unsigned int* ptr3 = minor_alloc(4);
 *ptr1 = (unsigned int)ptr2;
 *ptr2 = (unsigned int)ptr3;
-gc_add_ref(ptr1);
+gc_add_ref(&ptr1);
 mark_minor();
 gc_print_minor();
 gc_reset();
@@ -397,14 +422,13 @@ BEGIN_TEST(04)
 unsigned int* ptr1 = minor_alloc(4);
 unsigned int* ptr2 = minor_alloc(4);
 unsigned int* ptr3 = minor_alloc(4);
-gc_add_ref(ptr1);
+gc_add_ref(&ptr1);
 *ptr1 = (unsigned int)ptr2;
 *ptr2 = (unsigned int)ptr3;
 *ptr3 = (unsigned int)ptr1;
 mark_minor();
 gc_print_minor();
-
-  gc_reset();
+gc_reset();
 END_TEST()
 
 // Various values stored in the chunk
@@ -413,7 +437,7 @@ BEGIN_TEST(05)
   unsigned int* ptr2 = minor_alloc(252);
   unsigned int* ptr3 = minor_alloc(252);
   unsigned int* ptr4 = minor_alloc(252);
-gc_add_ref(ptr1);
+gc_add_ref(&ptr1);
   ptr1[0] = (unsigned int)ptr2;
   ptr1[3] = 3;
   ptr1[4] = 5;
@@ -453,46 +477,48 @@ assert(major_alloc(4)!= 0);
 gc_print_major();
 END_TEST()
 
-
-
 // Refs test
 BEGIN_TEST(09)
+gc_reset();
 // Initial empty ref table
 gc_print_refs();
 // Adding invalid reference, shouldnt alter the table
 gc_add_ref(0);
 gc_print_refs();
 
+#define ADD_REF(name, ptr) byte* name = ptr; gc_add_ref(&name);
 // adding one reference from minor heap
-gc_add_ref(&gc_minor_heap[0]);
+ADD_REF(ptr1, &gc_minor_heap[0])
 gc_print_refs();
 
 // lets assign a value so printing will yield result
 *((void**)&gc_minor_heap[0]) = (void*)0x123456;
 // invalid minor pointer
-gc_add_ref(&gc_minor_heap[GC_MINOR_HEAP_SIZE]);
+ADD_REF(ptr2, &gc_minor_heap[GC_MINOR_HEAP_SIZE]);
 // last pointer on minor heap
-gc_add_ref(&gc_minor_heap[GC_MINOR_HEAP_SIZE-sizeof(int)]);
+ADD_REF(ptr3, &gc_minor_heap[GC_MINOR_HEAP_SIZE-sizeof(int)]);
 // invalid major heap pointer
-gc_add_ref(&gc_major_heap[GC_MAJOR_HEAP_SIZE]);
-// last pointer on major heap
-gc_add_ref(&gc_major_heap[GC_MAJOR_HEAP_SIZE-sizeof(int)]);
+gc_add_ref(&ptr2);
+gc_add_ref(&ptr3);
 gc_print_refs();
+
 // remove last pointer
-gc_remove_ref(&gc_major_heap[GC_MAJOR_HEAP_SIZE-sizeof(int)]);
+ADD_REF(ptr6, &gc_major_heap[GC_MAJOR_HEAP_SIZE-sizeof(int)]);
+gc_remove_ref(&ptr6);
 // replace with minor heap ref (which is already, does nothing)
-gc_add_ref(&gc_minor_heap[GC_MINOR_HEAP_SIZE-sizeof(int)]);
+gc_add_ref(&ptr3);
 gc_print_refs();
 // add pointer at the end
-gc_add_ref(&gc_minor_heap[GC_MINOR_HEAP_SIZE-sizeof(int)-sizeof(int)]);
+ADD_REF(ptr8, &gc_minor_heap[GC_MINOR_HEAP_SIZE-sizeof(int)-sizeof(int)]);
 gc_print_refs();
 // remove last pointer
 gc_remove_ref(&gc_minor_heap[GC_MINOR_HEAP_SIZE-sizeof(int)-sizeof(int)]);
 gc_print_refs();
 gc_remove_ref(&gc_minor_heap[0]);
 gc_print_refs();
-gc_add_ref(&gc_minor_heap[0]);
+ADD_REF(ptr9, &gc_minor_heap[0]);
 gc_print_refs();
+
 END_TEST()
 
 #define MIN_OFFS(ptr) (PTR_INDEX(((byte*)ptr-&gc_minor_heap[0])))
@@ -505,7 +531,6 @@ unsigned int* ptr2 = minor_alloc(4);
 unsigned int* ptr3 = minor_alloc(4);
 unsigned int* ptr4 = minor_alloc(4);
 unsigned int* ptr5 = minor_alloc(4);
-void* refs[] = { ptr1 };
 ptr1[0] = (unsigned int)ptr2;
 ptr2[0] = (unsigned int)ptr3;
 ptr3[0] = (unsigned int)ptr4;
@@ -518,7 +543,7 @@ printf("\t%d\n", MIN_OFFS(ptr2[0]));
 printf("\t%d\n", MIN_OFFS(ptr3[0]));
 printf("\t%d\n", MIN_OFFS(ptr4[0]));
 printf("\t%d\n", MIN_OFFS(ptr5[0]));
-gc_add_ref(ptr1);
+gc_add_ref(&ptr1);
 mark_minor();
 copy_minor_heap();
 printf("**Printing referenced major heap offsets\n");
@@ -545,7 +570,7 @@ ptr2[1] = (unsigned int)ptr2;
 printf("**Printing referenced minor heap offsets\n");
 printf("\t%d\t%d\n", MIN_OFFS(ptr1[0]), MIN_OFFS(ptr1[1]));
 printf("\t%d\t%d\n", MIN_OFFS(ptr2[0]), MIN_OFFS(ptr2[1]));
-gc_add_ref(ptr1);
+gc_add_ref(&ptr1);
 mark_minor();
 copy_minor_heap();
 printf("**Printing referenced major heap offsets\n");
