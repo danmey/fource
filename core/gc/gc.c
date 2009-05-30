@@ -30,7 +30,7 @@
 #define WITH_HEADER(size) ((size) + sizeof(int))
 #define CHUNK_AT(i) (&gc_minor_heap[(i)*GC_MINOR_CHUNK_SIZE])
 #define BITS(ch) (WITH_HEADER(ch))
-#define BITS_AT(ch, idx) (*(((void**)(BITS((ch))+(idx)*sizeof(void*)))))
+#define BITS_AT(ch, idx) ((((void**)(BITS((ch))+(idx)*sizeof(void*)))))
 #define FLAGS(ch) (*((unsigned int*) (ch)))
 // Mark chunk with least significant bit set to 1
 #define MARK_CHUNK(ch,col) ((FLAGS(ch)) |= col);
@@ -91,6 +91,55 @@ void* gc_backpatch_table[GC_MINOR_CHUNKS];
 #define LOG(...)
 #endif
 
+void gc_add_ref(void* r)
+{
+  void** ref = r;
+  if ( r == 0 || (!POINTS_MINOR(*ref) && !POINTS_MAJOR(*ref)) ) return;
+  int i;
+  for(i=0; i < gc_ref_count; ++i)
+    if ( gc_ref_tab[i] == ref ) return;
+  
+  for(i=0; i < gc_ref_count; ++i)
+    if ( gc_ref_tab[i] == 0 ) 
+      {
+	gc_ref_tab[i] = ref;
+	return;
+      }
+  assert(gc_ref_count < GC_MAX_REF_COUNT);
+  gc_ref_tab[gc_ref_count++] = ref;
+  return;
+}
+
+void gc_remove_ref(void* ref)
+{
+  //  if ( !POINTS_MINOR(ref) && !POINTS_MAJOR(ref) ) return;
+  int i;
+  for(i=0; i < gc_ref_count-1; ++i)
+      if ( gc_ref_tab[i] == ref ) { gc_ref_tab[i] = 0; return; }
+
+  if ( gc_ref_tab[gc_ref_count-1] == ref ) gc_ref_count--;
+}
+
+void gc_print_refs()
+{
+  int i;
+  printf("**List of stored references. %d references.\n", gc_ref_count);
+  for(i=0; i < gc_ref_count; ++i)
+    {
+      if ( gc_ref_tab[i] != 0 )
+	{
+	  char* points_to = "??";
+	  void* heap = 0;
+	  if ( POINTS_MINOR(*gc_ref_tab[i]) ) { points_to = "minor"; heap = gc_minor_heap;}
+	  if ( POINTS_MAJOR(*gc_ref_tab[i]) ) {points_to = "major";heap = gc_major_heap;}
+	  printf("\tReference pointing to %.8x(%s)\t\n", *gc_ref_tab[i] - heap, points_to, *gc_ref_tab[i]);
+	}
+      else
+	printf("\tEmpty slot\n");
+    }
+  printf("**End of stored ref list\n");
+}
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Marks ref
 void mark_chunk(byte* ch)
@@ -100,9 +149,9 @@ void mark_chunk(byte* ch)
   int i;
   for(i=0; i < PTR_INDEX(CHUNK_SIZE(ch)); ++i)
     {
-      if ( REF_PTR(BITS_AT(ch,i)) )
+      if ( REF_PTR(*BITS_AT(ch,i)) )
         {
-	  byte* ptr = BITS_AT(ch,i);
+	  byte* ptr = *BITS_AT(ch,i);
 	  byte* ref_ch = MINOR_CHUNK(ptr);
 	  int idx = (ch-&gc_minor_heap[0]);
 	  //	  gc_backpatch_table[PTR_INDEX(idx)][0] = (void*)ptr;
@@ -155,18 +204,34 @@ void backpatch_chunk(byte* ch)
   int i;
   for(i=0; i < PTR_INDEX(CHUNK_SIZE(ch)); ++i)
     {
-      if ( REF_PTR(BITS_AT(ch,i)) )
+      if ( REF_PTR(*BITS_AT(ch,i)) )
         {
-	  byte* ptr = BITS_AT(ch,i);
+	  byte* ptr = *BITS_AT(ch,i);
 	  byte* ref_ch = MINOR_CHUNK(ptr);
 	  if ( MARKED(ref_ch) )
 	    {
 	      byte* new_ptr = (byte*)gc_backpatch_table[CHUNK_OFFSET(ref_ch)];
 	      assert(new_ptr != 0);
 	      int delta = new_ptr-ref_ch;
-	      BITS_AT(ch,i) += delta;
+	      *BITS_AT(ch,i) += delta;
 	    }
         }
+    }
+}
+
+
+void add_minor_chunk_refs(byte* ch)
+{
+  int i;
+  for(i=0; i < PTR_INDEX(CHUNK_SIZE(ch)); ++i)
+    {
+      if ( REF_PTR(*BITS_AT(ch,i)) )
+        {
+	  void** ptr = BITS_AT(ch,i);
+	  byte* ref_ch = MINOR_CHUNK(*ptr);
+	  if ( MARKED(ref_ch) )
+	      gc_add_ref(ptr);
+	}
     }
 }
 
@@ -177,20 +242,21 @@ void backpatch_refs()
     {
       if ( gc_ref_tab[i] != 0 ) 
 	{
-	  void* ptr = *(void**)gc_ref_tab[i];
-	  if ( POINTS_MINOR(ptr) ) 
+	  void** ptr = (void**)gc_ref_tab[i];
+	  if ( POINTS_MINOR(*ptr) ) 
 	    {
-	      byte* ch = MINOR_CHUNK(ptr);
-	      byte* new_ptr = (byte*)gc_backpatch_table[CHUNK_OFFSET(ch)];
-	      if ( new_ptr != 0 ) 
-		{
-		  int delta = new_ptr-ch;
-		  *(void**)ptr += delta;
-		}
+	      byte* ch = MINOR_CHUNK(*ptr);
+	      if ( MARKED(ch) ) {
+		byte* new_ptr = (byte*)gc_backpatch_table[CHUNK_OFFSET(ch)];
+		if ( new_ptr != 0 ) 
+		  {
+		    int delta = new_ptr-ch;
+		    *ptr += delta;
+		  }
+	      }
 	    }
 	}
     }
-  
 }
 
 void copy_minor_heap()
@@ -203,10 +269,13 @@ void copy_minor_heap()
 	void* ptr = major_alloc(WITHOUT_HEADER(CHUNK_SIZE(ch)));
 	assert( ptr != 0 );
 	gc_backpatch_table[i] = ptr;
+	add_minor_chunk_refs(ch);
       }
   }
   END_FOR_EACH();
-		 
+
+  backpatch_refs();
+
   FOR_EACH_MINCH(ch);
   {
     backpatch_chunk(ch);
@@ -223,7 +292,6 @@ void copy_minor_heap()
       }
     }
   END_FOR_EACH();
-  // backpatch_refs();
 }
 
 void collect_minor()
@@ -238,13 +306,12 @@ void* minor_alloc(int size)
   size = WITH_HEADER(ALIGN(size));
 
   if ( size > GC_MINOR_CHUNK_SIZE) 
-    return 0; //major_alloc(size);
+    return 0;//major_alloc(size);
 
   if ( gc_cur_min_chunk >= GC_MINOR_CHUNKS )
     {
-      //      collect_minor();
-      //      return minor_alloc(size);
-      return 0;
+      collect_minor();
+      return minor_alloc(size);
     }
   FLAGS(CHUNK_AT(gc_cur_min_chunk)) = size;
   return BITS(CHUNK_AT(gc_cur_min_chunk++));
@@ -305,54 +372,6 @@ void gc_reset()
   gc_ref_count = 0;
 }
 
-void gc_add_ref(void* r)
-{
-  void** ref = r;
-  if ( r == 0 || (!POINTS_MINOR(*ref) && !POINTS_MAJOR(*ref)) ) return;
-  int i;
-  for(i=0; i < gc_ref_count; ++i)
-    if ( gc_ref_tab[i] == ref ) return;
-  
-  for(i=0; i < gc_ref_count; ++i)
-    if ( gc_ref_tab[i] == 0 ) 
-      {
-	gc_ref_tab[i] = ref;
-	return;
-      }
-  assert(gc_ref_count < GC_MAX_REF_COUNT);
-  gc_ref_tab[gc_ref_count++] = ref;
-  return;
-}
-
-void gc_remove_ref(void* ref)
-{
-  //  if ( !POINTS_MINOR(ref) && !POINTS_MAJOR(ref) ) return;
-  int i;
-  for(i=0; i < gc_ref_count-1; ++i)
-      if ( gc_ref_tab[i] == ref ) { gc_ref_tab[i] = 0; return; }
-
-  if ( gc_ref_tab[gc_ref_count-1] == ref ) gc_ref_count--;
-}
-
-void gc_print_refs()
-{
-  int i;
-  printf("**List of stored references. %d references.\n", gc_ref_count);
-  for(i=0; i < gc_ref_count; ++i)
-    {
-      if ( gc_ref_tab[i] != 0 )
-	{
-	  char* points_to = "??";
-	  void* heap = 0;
-	  if ( POINTS_MINOR(*gc_ref_tab[i]) ) { points_to = "minor"; heap = gc_minor_heap;}
-	  if ( POINTS_MAJOR(*gc_ref_tab[i]) ) {points_to = "major";heap = gc_major_heap;}
-	  printf("\tReference pointing to %.8x(%s)\t\n", *gc_ref_tab[i] - heap, points_to, *gc_ref_tab[i]);
-	}
-      else
-	printf("\tEmpty slot\n");
-    }
-  printf("**End of stored ref list\n");
-}
 
 /*
 void gc_print_backpatch()
@@ -452,6 +471,7 @@ END_TEST()
 
 // Test for exceeding allocation memory of first heap
 BEGIN_TEST(06)
+gc_reset();
 int i;
 for(i=0; minor_alloc(4); i++);
 assert(i==GC_MINOR_CHUNKS);
@@ -536,7 +556,7 @@ ptr2[0] = (unsigned int)ptr3;
 ptr3[0] = (unsigned int)ptr4;
 ptr4[0] = (unsigned int)ptr5;
 ptr5[0] = (unsigned int)ptr1;
-
+ 
 printf("**Printing referenced minor heap offsets\n");
 printf("\t%d\n", MIN_OFFS(ptr1[0]));
 printf("\t%d\n", MIN_OFFS(ptr2[0]));
@@ -560,9 +580,8 @@ END_TEST()
 // Test for backpatching circular list, with more slots
 BEGIN_TEST(11)
 gc_reset();
-unsigned int* ptr1 = minor_alloc(4);
-unsigned int* ptr2 = minor_alloc(4);
-void* refs[] = { ptr1 };
+unsigned int* ptr1 = minor_alloc(8);
+unsigned int* ptr2 = minor_alloc(8);
 ptr1[0] = (unsigned int)ptr2;
 ptr2[0] = (unsigned int)ptr1;
 ptr1[1] = (unsigned int)ptr1;
