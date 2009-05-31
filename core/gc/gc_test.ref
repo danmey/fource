@@ -39,6 +39,15 @@ Running test 05
 **End of minor chunks list
 Test 05 completed
 Running test 06
+**List of minor heap allocated 4 chunks
+	chunk 0000	size 012	marked n
+	chunk 0001	size 008	marked n
+	chunk 0002	size 008	marked n
+	chunk 0003	size 008	marked n
+**End of minor chunks list
+**List of major heap allocated chunks
+	size 33554432	marked free
+**End of major chunks list
 Test 06 completed
 Running test 07
 **List of major heap allocated chunks
@@ -119,11 +128,11 @@ Running test 11
 	65	1
 	1	65
 **Printing referenced major heap offsets
-	3	1
-	1	3
+	4	1
+	1	4
 **List of major heap allocated chunks
-	size 008	marked white
-	size 008	marked white
-	size 33554416	marked free
+	size 012	marked white
+	size 012	marked white
+	size 33554408	marked free
 **End of major chunks list
 Test 11 completed
