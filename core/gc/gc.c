@@ -258,6 +258,7 @@ void backpatch_refs()
     }
 }
 
+void gc_print_major();
 void copy_minor_heap()
 {
   int i;
@@ -271,8 +272,9 @@ void copy_minor_heap()
 	add_minor_chunk_refs(ch);
       }
   }
+  //  gc_print_major();
   END_FOR_EACH();
-
+  
   backpatch_refs();
 
   FOR_EACH_MINCH(ch);
@@ -288,14 +290,29 @@ void copy_minor_heap()
 	byte* new_ptr = (byte*)gc_backpatch_table[i];
 	assert(new_ptr != 0);
 	//	memcpy(new_ptr, WITH_HEADER(ch), WITHOUT_HEADER(CHUNK_SIZE(ch)));
-	memcpy(new_ptr, ch, CHUNK_SIZE(ch));
+       	memcpy(new_ptr, ch, CHUNK_SIZE(ch));
       }
     }
   END_FOR_EACH();
 }
 
+void colour_major()
+{
+  int i;
+  for(i=0; i < gc_ref_count; ++i)
+    {
+      if ( gc_ref_tab[i] != 0 ) 
+	{
+	  void** ptr = (void**)gc_ref_tab[i];
+	  
+	}
+    }  
+}
+
 void collect_minor()
 {
+  LOG("Starting minor collection.\n");
+  mark_minor();
   copy_minor_heap();
   gc_cur_min_chunk = 0;
 }
@@ -480,6 +497,7 @@ gc_print_minor();
 gc_print_major();
 END_TEST()
 
+
 // Checking initial layout of elder heap
 BEGIN_TEST(07)
 gc_reset();
@@ -603,10 +621,31 @@ gc_print_major();
 gc_reset();
 END_TEST()
 
-// Test for backpathing references
+// Test for exceeding minor collection (linked list)
 BEGIN_TEST(12)
-
+gc_reset();
+int i;
+unsigned int* prev;
+unsigned int* beg_list = 0;
+for(i=0; i<GC_MINOR_CHUNKS+4 ; i++)
+  {
+    unsigned int* ptr = minor_alloc(4);
+    if ( i >= GC_MINOR_CHUNKS-4 )
+      {
+	prev[0] = (unsigned int)ptr;
+	if ( beg_list == 0 )
+	  {
+	    beg_list = prev;
+	    gc_add_ref(&beg_list);
+	  }
+      }
+    prev = ptr;
+  }
+gc_print_minor();
+gc_print_major();
+printf("\t%d\n", MAJ_OFFS(beg_list));
 END_TEST()
+
 
 int main()
 {
@@ -621,6 +660,7 @@ int main()
   test_09();
   test_10();
   test_11();
+  test_12();
   return 0;
 }
 
