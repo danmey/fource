@@ -1,3 +1,4 @@
+0xa08c460
 Running test 01
 **List of minor heap allocated 7 chunks
 	chunk 0000	size 256	marked n
@@ -40,7 +41,7 @@ Running test 05
 Test 05 completed
 Running test 06
 **List of minor heap allocated 4 chunks
-	chunk 0000	size 012	marked n
+	chunk 0000	size 008	marked n
 	chunk 0001	size 008	marked n
 	chunk 0002	size 008	marked n
 	chunk 0003	size 008	marked n
@@ -136,3 +137,17 @@ Running test 11
 	size 33554408	marked free
 **End of major chunks list
 Test 11 completed
+Running test 12
+**List of minor heap allocated 1 chunks
+	chunk 0000	size 008	marked n
+**End of minor chunks list
+**List of major heap allocated chunks
+	size 008	marked white
+	size 008	marked white
+	size 008	marked white
+	size 008	marked white
+	size 008	marked white
+	size 33554392	marked free
+**End of major chunks list
+	1
+Test 12 completed
