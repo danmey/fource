@@ -27,7 +27,6 @@
 #define GC_COL_BLACK 3
 #define GC_MARKED 1
 
-#define WITH_HEADER(size) ((size) + sizeof(int))
 #define CHUNK_AT(i) (&gc_minor_heap[(i)*GC_MINOR_CHUNK_SIZE])
 #define BITS(ch) (WITH_HEADER(ch))
 #define BITS_AT(ch, idx) ((((void**)(BITS((ch))+(idx)*sizeof(void*)))))
@@ -288,6 +287,7 @@ void copy_minor_heap()
       {
 	byte* new_ptr = (byte*)gc_backpatch_table[i];
 	assert(new_ptr != 0);
+	//	memcpy(new_ptr, WITH_HEADER(ch), WITHOUT_HEADER(CHUNK_SIZE(ch)));
 	memcpy(new_ptr, ch, CHUNK_SIZE(ch));
       }
     }
@@ -474,8 +474,10 @@ END_TEST()
 BEGIN_TEST(06)
 gc_reset();
 int i;
-for(i=0; minor_alloc(4); i++);
-assert(i==GC_MINOR_CHUNKS);
+for(i=0; i<GC_MINOR_CHUNKS+4 ; i++)
+  minor_alloc(4);
+gc_print_minor();
+gc_print_major();
 END_TEST()
 
 // Checking initial layout of elder heap
