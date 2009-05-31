@@ -151,3 +151,22 @@ Running test 12
 **End of major chunks list
 	1
 Test 12 completed
+Running test 13
+**List of major heap allocated chunks
+	size 104	marked grey
+	size 104	marked white
+	size 104	marked grey
+	size 33554120	marked free
+**End of major chunks list
+Test 13 completed
+Running test 14
+**List of major heap allocated chunks
+	size 104	marked black
+	size 104	marked black
+	size 104	marked black
+	size 104	marked black
+	size 104	marked white
+	size 104	marked white
+	size 33553808	marked free
+**End of major chunks list
+Test 14 completed
