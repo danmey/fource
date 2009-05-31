@@ -296,6 +296,19 @@ void copy_minor_heap()
   END_FOR_EACH();
 }
 
+void darken_major(byte* ptr)
+{
+  byte* cur;
+  for(cur = &gc_major_heap[0];
+      !(ptr >= cur && ptr < cur + CHUNK_SIZE(cur)) &&
+      cur < &gc_major_heap[GC_MAJOR_HEAP_SIZE];
+      cur = cur + CHUNK_SIZE(cur))
+    {
+      if ( FLAGS(cur) != GC_COL_BLACK )
+	FLAGS(cur)++;
+    }
+}
+
 void colour_major()
 {
   int i;
@@ -303,8 +316,8 @@ void colour_major()
     {
       if ( gc_ref_tab[i] != 0 ) 
 	{
-	  void** ptr = (void**)gc_ref_tab[i];
-	  
+	  void**ptr = gc_ref_tab[i];
+	  darken_major(*ptr);
 	}
     }  
 }
@@ -329,7 +342,7 @@ void* minor_alloc(int size)
   if ( gc_cur_min_chunk >= GC_MINOR_CHUNKS )
     {
       collect_minor();
-      return minor_alloc(size);
+      return minor_alloc(WITHOUT_HEADER(size));
     }
   FLAGS(CHUNK_AT(gc_cur_min_chunk)) = size;
   return BITS(CHUNK_AT(gc_cur_min_chunk++));
@@ -470,21 +483,21 @@ END_TEST()
 
 // Various values stored in the chunk
 BEGIN_TEST(05)
-  unsigned int* ptr1 = minor_alloc(252);
-  unsigned int* ptr2 = minor_alloc(252);
-  unsigned int* ptr3 = minor_alloc(252);
-  unsigned int* ptr4 = minor_alloc(252);
+unsigned int* ptr1 = minor_alloc(252);
+unsigned int* ptr2 = minor_alloc(252);
+unsigned int* ptr3 = minor_alloc(252);
+unsigned int* ptr4 = minor_alloc(252);
 gc_add_ref(&ptr1);
-  ptr1[0] = (unsigned int)ptr2;
-  ptr1[3] = 3;
-  ptr1[4] = 5;
-  ptr1[32] = (unsigned int)ptr3;
-  ptr1[60] = -1;
-  ptr1[61] = -3;
-  ptr1[62] = (unsigned int)ptr4;
-  mark_minor();
-  gc_print_minor();
-  gc_reset();
+ptr1[0] = (unsigned int)ptr2;
+ptr1[3] = 3;
+ptr1[4] = 5;
+ptr1[32] = (unsigned int)ptr3;
+ptr1[60] = -1;
+ptr1[61] = -3;
+ptr1[62] = (unsigned int)ptr4;
+mark_minor();
+gc_print_minor();
+gc_reset();
 END_TEST()
 
 // Test for exceeding allocation memory of first heap
@@ -627,7 +640,7 @@ gc_reset();
 int i;
 unsigned int* prev;
 unsigned int* beg_list = 0;
-for(i=0; i<GC_MINOR_CHUNKS+4 ; i++)
+for(i=0; i<GC_MINOR_CHUNKS ; i++)
   {
     unsigned int* ptr = minor_alloc(4);
     if ( i >= GC_MINOR_CHUNKS-4 )
@@ -641,6 +654,7 @@ for(i=0; i<GC_MINOR_CHUNKS+4 ; i++)
       }
     prev = ptr;
   }
+minor_alloc(4);
 gc_print_minor();
 gc_print_major();
 printf("\t%d\n", MAJ_OFFS(beg_list));
@@ -649,6 +663,7 @@ END_TEST()
 
 int main()
 {
+  printf("%p\n", &gc_minor_heap[0]);
   test_01();
   test_02();
   test_03();
