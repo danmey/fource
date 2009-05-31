@@ -32,7 +32,7 @@
 #define BITS_AT(ch, idx) ((((void**)(BITS((ch))+(idx)*sizeof(void*)))))
 #define FLAGS(ch) (*((unsigned int*) (ch)))
 // Mark chunk with least significant bit set to 1
-#define MARK_CHUNK(ch,col) ((FLAGS(ch)) |= col);
+#define MARK_CHUNK(ch,col) ((FLAGS(ch)) = CHUNK_SIZE(ch)|col);
 
 // Extract chunk size from flag/size field
 #define CHUNK_SIZE(ch) (FLAGS((ch)) & (~3))
@@ -48,6 +48,8 @@
 #define MINOR_CHUNK(ptr) (((((byte*)(ptr) - &gc_minor_heap[0])/GC_MINOR_CHUNK_SIZE)*GC_MINOR_CHUNK_SIZE)+&gc_minor_heap[0])
 // Find if the chunk points to another chunk
 #define REF_PTR(ptr) (MEM_TAG((ptr)) && POINTS_MINOR((ptr)))
+#define REF_PTR_MJ(ptr) (MEM_TAG((ptr)) && POINTS_MAJOR((ptr)))
+
 // Is it marked?
 #define MARKED(ch) (FLAGS(ch) & 1)
 #define CHUNK_OFFSET(ch) ((((ch))-&gc_minor_heap[0])/GC_MINOR_CHUNK_SIZE)
@@ -160,6 +162,38 @@ void mark_chunk(byte* ch)
     }
 }
 
+byte* find_major_chunk(byte* ptr)
+{
+  byte* cur;
+  for(cur = &gc_major_heap[0];
+      !(ptr >= cur && (ptr < (cur + CHUNK_SIZE(cur)))) &&
+	cur < &gc_major_heap[GC_MAJOR_HEAP_SIZE];
+      cur = cur + CHUNK_SIZE(cur))
+    ;
+  if ( cur < &gc_major_heap[GC_MAJOR_HEAP_SIZE] )
+    return cur;
+  return 0;
+}
+
+void mark_major_chunk(byte* ch)
+{
+  if ( CHUNK_FLAGS(ch) != GC_COL_BLACK )
+    {
+      MARK_CHUNK(ch, CHUNK_FLAGS(ch)+1);
+      LOG("Starting marking chunk: %d", ch-&gc_major_heap[0]);
+      int i;
+      for(i=0; i < PTR_INDEX(CHUNK_SIZE(ch)); ++i)
+	{
+	  if ( REF_PTR_MJ(*BITS_AT(ch,i)) )
+	    {
+	      byte* ptr = *BITS_AT(ch,i);
+	      byte* ref_ch = find_major_chunk(ptr);
+	      mark_major_chunk(ref_ch);
+	    }
+	}
+    }
+}
+
 void mark_minor()                  
 {
   memset(gc_backpatch_table, 0, sizeof(gc_backpatch_table));
@@ -195,7 +229,7 @@ void* major_alloc(int size)
   MARK_CHUNK(free_chunk, GC_COL_WHITE);
   byte* next_chunk = (cur + size);
   FLAGS(next_chunk) = prev_size-size;
-  return (void*)free_chunk;
+  return (void*)WITH_HEADER(free_chunk);
 }
 
 void backpatch_chunk(byte* ch)
@@ -266,10 +300,10 @@ void copy_minor_heap()
   {
     if ( MARKED(ch) )
       {
-	void* ptr = major_alloc(WITHOUT_HEADER(CHUNK_SIZE(ch)));
+	void* ptr = WITHOUT_HEADER(major_alloc(WITHOUT_HEADER(CHUNK_SIZE(ch))));
 	assert( ptr != 0 );
 	gc_backpatch_table[i] = ptr;
-	add_minor_chunk_refs(ch);
+	//	add_minor_chunk_refs(ch);
       }
   }
   //  gc_print_major();
@@ -296,30 +330,41 @@ void copy_minor_heap()
   END_FOR_EACH();
 }
 
-void darken_major(byte* ptr)
+void darken_chunk(byte* ptr)
 {
-  byte* cur;
-  for(cur = &gc_major_heap[0];
-      !(ptr >= cur && ptr < cur + CHUNK_SIZE(cur)) &&
-      cur < &gc_major_heap[GC_MAJOR_HEAP_SIZE];
-      cur = cur + CHUNK_SIZE(cur))
-    {
-      if ( FLAGS(cur) != GC_COL_BLACK )
-	FLAGS(cur)++;
-    }
+  byte* cur = find_major_chunk(ptr);
+  if ( cur != 0 && CHUNK_FLAGS(cur) == GC_COL_WHITE )
+    MARK_CHUNK(cur, GC_COL_GREY)
 }
 
-void colour_major()
+void darken_roots()
 {
   int i;
   for(i=0; i < gc_ref_count; ++i)
     {
       if ( gc_ref_tab[i] != 0 ) 
 	{
-	  void**ptr = gc_ref_tab[i];
-	  darken_major(*ptr);
+	  void** ptr = gc_ref_tab[i];
+	  darken_chunk(*ptr);
 	}
     }  
+}
+
+void darken_major()
+{
+  byte* cur;
+  for(cur = &gc_major_heap[0];
+      cur < &gc_major_heap[GC_MAJOR_HEAP_SIZE];
+      cur = cur + CHUNK_SIZE(cur))
+    {
+      int fl = CHUNK_FLAGS(cur);
+      switch(fl) 
+	{
+	case GC_COL_GREY:  
+	  mark_major_chunk(cur);
+	  break;
+	}
+    }
 }
 
 void collect_minor()
@@ -402,29 +447,6 @@ void gc_reset()
   memset(gc_backpatch_table, 0, sizeof(gc_backpatch_table));
   gc_ref_count = 0;
 }
-
-
-/*
-void gc_print_backpatch()
-{
-  printf("**Printing backpatch table.\n");
-  int i;
-  for(i=0; i<PTR_INDEX(GC_MINOR_HEAP_SIZE); ++i)
-    {
-      byte* ptr = (byte*)gc_backpatch_table[i][0];
-      if ( ptr != 0 )
-	{
-	  int mem_offset = BYTE_INDEX(i);
-	  int first_index = mem_offset/GC_MINOR_CHUNK_SIZE;
-	  int first_offset = PTR_INDEX(mem_offset % GC_MINOR_CHUNK_SIZE);
-	  int second_index = CHUNK_OFFSET(ptr);
-	  int second_offset = PTR_INDEX((WITHOUT_HEADER((byte*)ptr - &gc_minor_heap[0])%GC_MINOR_CHUNK_SIZE));
-	  printf("\tminor chunk %d at %d -> %d at %d\n", first_index, first_offset, second_index, second_offset);
-	}
-    }
-  printf("**End of backpatch table.\n");
-}
-*/
 
 // Basic boundary check for allocation of different sizes of chunks 
 BEGIN_TEST(01)
@@ -660,6 +682,32 @@ gc_print_major();
 printf("\t%d\n", MAJ_OFFS(beg_list));
 END_TEST()
 
+// Simple test for darkening roots
+BEGIN_TEST(13)
+gc_reset();
+ADD_REF(ptr1, major_alloc(100));
+major_alloc(100);
+ADD_REF(ptr2, major_alloc(100));
+darken_roots();
+gc_print_major();
+END_TEST()
+
+BEGIN_TEST(14)
+gc_reset();
+ADD_REF(ptr1, major_alloc(100));
+unsigned int* ptr2 = major_alloc(100);
+unsigned int* ptr3 = major_alloc(100);
+unsigned int* ptr4 = major_alloc(100);
+major_alloc(100);
+major_alloc(100);
+ptr1[0] = (unsigned int)ptr2;
+ptr2[0] = (unsigned int)ptr3;
+ptr3[0] = (unsigned int)ptr4;
+darken_roots();
+darken_major();
+gc_print_major();
+
+END_TEST()
 
 int main()
 {
@@ -676,6 +724,8 @@ int main()
   test_10();
   test_11();
   test_12();
+  test_13();
+  test_14();
   return 0;
 }
 
