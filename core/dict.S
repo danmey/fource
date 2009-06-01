@@ -308,6 +308,11 @@
 		pop	%eax
 	Endword
 
+	Defword gcalloc,"gc_alloc"
+		C_Call_safe	gc_alloc
+		push	%eax
+	Endword
+	
 Vm_Save_image:	 .LONG 0
 	.GLOBL Vm_Save_image
 image_name:	.ASCIZ "image.fi"
