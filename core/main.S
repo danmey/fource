@@ -1,12 +1,22 @@
-#include "image-tags/image-start.S"
+	.GLOBL Vm_eval
+	.GLOBL Vm_reset
+	.GLOBL Vm_Exception_handler
+	.GLOBL Vm_Save_image
+	.GLOBL Vm_image_start
+	.GLOBL Vm_image_end
+
+.ALIGN 4096
+Vm_image_start:
+
 #include "interpret.S"
 #include "literal.S"
 #include "getkey.S"
 #include "mem.S"
-#include "emit.S"
 #include "exception.S"
 #include "dict.S"
-#include "image-tags/image-end.S"
+
+.ALIGN 4096
+Vm_image_end:
 
 	
 	

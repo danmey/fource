@@ -1,7 +1,4 @@
 #include "continuation.h"	
-#include "module.h"	
-
-Module_start
 	Vm_alloc Vm_Exception_handler,4
 
 
@@ -39,8 +36,7 @@ Module_start
 
 Msg_Exception_handler_not_def:
 	.asciz "*Error: Uncought Fource kernel exception!\n"
-.GLOBL	Exception_data
-.GLOBL	Exception
+
 	
 Define_continuation_with_context Exception
 exception_loop:	

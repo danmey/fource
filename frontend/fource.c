@@ -16,13 +16,6 @@
 
 sigset_t mainsigset;
 sigsegv_dispatcher ss_dispatcher;
-extern void Vm_reset(void);
-
-
-extern Vm_Exception_handler_t Vm_Exception_handler;
-extern void Vm_interpret(char *);
-extern char _Image_start;
-extern char _Image_end;
 
 /* FIX: refactored by (JO) */
 #define PANIC(_rcode,...) ( {fprintf(stderr, "Fatal: "); fprintf(stderr, __VA_ARGS__ ) ; exit(_rcode); })
@@ -77,7 +70,7 @@ load_image(const char* file_name)
 {
   FILE* f = fopen(file_name, "rb");
   if ( f == 0 ) abort();
-  fread(&_Image_start, 1, &_Image_end - &_Image_start, f);
+  fread(&Vm_image_start, 1, &Vm_image_end - &Vm_image_start, f);
   fclose(f);
 }
 
@@ -138,7 +131,7 @@ int kernel_exception_handler(Vm_Exception_t* ex)
 void dump_image()
 {
   FILE* f = fopen("image.fi", "wb");
-  fwrite(&_Image_start, &_Image_end - &_Image_start, 1, f);
+  fwrite(&Vm_image_start, &Vm_image_end - &Vm_image_start, 1, f);
   fclose(f);
 }
 
@@ -155,7 +148,7 @@ void run_repl()
 	static char line[257];
 	while( EOF != just_one_line(stdin, 256, line) )
 	  {
-	    Vm_interpret(line);
+	    Vm_eval(line);
 	    if ( Vm_Save_image ) 
 	      {
 		Vm_Save_image = 0;
@@ -192,7 +185,7 @@ sigset_t emptyset;
   sigemptyset (&emptyset);
   sigprocmask (SIG_BLOCK, &emptyset, &mainsigset);
 
-  enable_memory_block(&_Image_start, &_Image_end);
+  enable_memory_block(&Vm_image_start, &Vm_image_end);
   process_opts(argc,argv);
   install_exception_handler(kernel_exception_handler);
   if ( opts.image_file != 0 )

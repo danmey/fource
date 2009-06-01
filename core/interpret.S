@@ -3,9 +3,8 @@
 #include "continuation.h"			
 #include "ccall.h"
 
-
 	## Exports
-	.GLOBL Vm_interpret
+	.GLOBL Vm_eval
 	.GLOBL Vm_reset
 
 
@@ -76,7 +75,7 @@ compile_literal:
 1:
 	jmp 	vm_loop
 	
-Vm_interpret:
+Vm_eval:
 	call 	init_mem
 	Vm_Save_context Enviroment_context
 	push	%ebp
@@ -91,7 +90,6 @@ Continuation_entry Vm_Entry_point, Vm, Vm_data
 
 # TODO: Make general macro for definition of procedures
 # TODO: Make it case insensitive
-	.GLOBL Find_word
 Find_word:
  	movl	var_last,	%edx
 next:
@@ -113,7 +111,6 @@ not_found:
 	xor	%eax,	%eax
 	ret
 
-	.GLOBL Vm_reset
 Vm_reset:	
 	Reset_continuation Vm
 	ret

@@ -1,10 +1,5 @@
 #include "ccall.h"
-
-.GLOBL Fmt_dec
-.GLOBL Fmt_hex
-.GLOBL Fmt_hex_
 	
-.GLOBL Parse_literal
 Fmt_dec:	.ASCIZ "%d "
 Fmt_hex:	.ASCIZ "%x "
 Fmt_hex_:	.ASCIZ "%#x "	

@@ -3,8 +3,6 @@
 
 
 
-	.GLOBL	Vm_interpret
-
 
 
 	
@@ -28,11 +26,6 @@
 		jz \white_label	
 	.ENDM
 
-	.GLOBL Get_word
-	.GLOBL Token_buffer
-.GLOBL Input_stream
-	
- .GLOBL	Get_word_data
 ################################################################################
 #	Define_continuation_with_context Get_word
 # Commented out! we need continuation on VM rather then Get_word module
@@ -76,7 +69,6 @@ word_end2:
 exit_func:
 	movl	%esi, Input_stream
 	ret
-.GLOBL Get_key
 
 Get_key:
 	xor	%eax,%eax

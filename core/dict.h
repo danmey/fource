@@ -25,8 +25,6 @@
 		.LONG 		0		# 1 if it
  		.SET		Wprev, wstart_\label	# update prev label
 		.SET		Word_semantics, . - wstart_\label
-		.GLOBL		Word_semantics
-		.GLOBL		wcode_execute
 		.LONG		wcode_execute
 		.IFB \token
 			.LONG wcode_compile
@@ -36,8 +34,6 @@
 #		.LONG		wcode_compile # meta compile
 	wcode_\label:
 		.SET	Word_header_size, wcode_\label - wstart_\label
-		.GLOBL 	Word_header_size
-		.GLOBL wstart_\label
 
 	# This instruction is going to restore stack for local use in word
 	# Parameter stack resides in %esi register
@@ -64,7 +60,6 @@
 		Endword 
 var_\()\label:
 		.LONG 	\value
-	.GLOBL var_\()\label
 	.ENDM
 
 

@@ -3,7 +3,6 @@
 #include "ccall.h"
 #include "continuation.h"
 #include "emit.h"
-	
 	Defvar state, "state", VM_STATE_INTERPRETING
 
 	# Pointer to last word
@@ -60,8 +59,6 @@
 		mov	%ebx,%eax
 	Endword
 
-	.GLOBL wcode_dot
-	
 	Defword dot, "."
 		cmpl	$10, var_base
 		jnz 	1f
@@ -89,22 +86,16 @@
 		movl	$VM_STATE_INTERPRETING, var_state
 	Endword
 
-	defword rbracket, ")",wcode_execute
-		movl	$VM_STATE_MACRO_COMPILING, var_state
-	Endword
-	
 	Defword compile,"compile"
 		pusha 
 		mov	var_here, %edi
 		addl	$Word_header_size,%eax
-#		Emit_literal	$123
 		Emit_sub_call	%eax
 		mov	%edi, var_here
 		popa
 		pop	%eax
 
 	Endword
-	.GLOBL wcode_literal
 
 	Defword literal, "literal"
 		mov	var_here,%edi
@@ -115,10 +106,10 @@
 
 	Defword exit_comma,"exit,",IMM
 		pusha
-		movl	$(Epilog_code_end-Epilog_code),%ecx
-		movl	$Epilog_code,	%esi
-		movl	var_here,	%edi	
-		rep	movsb
+		
+		movl	var_here,%edi
+		mov	$0xC3,	%eax
+		stosb
 		movl	%edi, var_here
 		popa
 	Endword
@@ -308,51 +299,27 @@
 		pop	%eax
 	Endword
 
+	/*
 	Defword gcalloc,"gc_alloc"
 		C_Call_safe	gc_alloc
 		push	%eax
 	Endword
-	
-Vm_Save_image:	 .LONG 0
-	.GLOBL Vm_Save_image
-image_name:	.ASCIZ "image.fi"
-wb:	.ASCIZ "wb"
+	*/
 	
 	Defword saveimage, "saveimage"
-	# dirty hack		
+	# a dirty hack :)
 		movl	$1,Vm_Save_image
 		Exit_continuation_ret
 	Endword
 	Defvar last, "last", wstart_last
+Vm_Save_image:	 .LONG 0
+image_name:	.ASCIZ "image.fi"
+wb:	.ASCIZ "wb"
 
-.align	4
 	.align 32
-.GLOBL Cells
-Cells:
-1:	
-	or	%eax,%eax
-	pop	%eax
-	jz	1f
-1:	
+Cells:	
 	.FILL 1024*1024
-	
-Prolog_code:
-#	xchg	%esp,	%esi
-Prolog_code_end:	
 
-Epilog_code:
-#	xchg	%esp,	%esi
-	
-	ret
-Epilog_code_end:
-
-Test_code:
-	xchg	%esi,	%esp
-	push	%eax
-	mov	$123,%eax
-	xchg	%esi,	%esp
-	ret
-Test_code_end:
 
 
 	

@@ -28,4 +28,10 @@ typedef struct
 typedef int (*Vm_Exception_handler_t)(Vm_Exception_t*);
 //extern Vm_Exception_handler_t Vm_Exception_handler;
 
+extern void Vm_reset(void);
+extern Vm_Exception_handler_t Vm_Exception_handler;
+extern void Vm_eval(char *);
+extern char Vm_image_start;
+extern char Vm_image_end;
+
 #endif
