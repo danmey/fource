@@ -3,7 +3,6 @@
 
 
 	
-	.GLOBL Vm_Exception_handler
 
 	.MACRO Struct
 		.struct 0

@@ -3,10 +3,6 @@
 #include "continuation.h"			
 #include "ccall.h"
 
-	## Exports
-	.GLOBL Vm_eval
-	.GLOBL Vm_reset
-
 
 
 
@@ -88,8 +84,15 @@ Vm_eval:
 	
 Continuation_entry Vm_Entry_point, Vm, Vm_data
 
+	.MACRO Upper_case regb
+		cmpb	$'a',	\regb
+		jb	9f
+		cmpb	$'z',	\regb
+		ja	9f
+		subb	$0x20,	\regb
+	9:
+	.ENDM
 # TODO: Make general macro for definition of procedures
-# TODO: Make it case insensitive
 Find_word:
  	movl	var_last,	%edx
 next:
@@ -97,9 +100,19 @@ next:
 	movl	$NAMESIZE,	%ecx
 	leal	4(%edx),	%edi
 	mov	%ebx,		%esi
-	repe	cmpsb
-	or	%ecx,	%ecx
+1:
+# Following chunk of code compares uppercase converted characters
+	xorl	%eax,	%eax
+	movb	(%esi),	%ah
+	Upper_case 	%ah
+	movb	(%edi),	%al
+	Upper_case 	%al
+	inc	%esi
+	inc	%edi
+	cmp	%al,	%ah
 	jnz	not_found
+	dec	%ecx
+	jne	1b
 	cmp	$1, 36(%edx)
 	jz	not_found
 	mov	%edx,	%eax
