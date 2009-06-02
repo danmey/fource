@@ -92,6 +92,7 @@ Continuation_entry Vm_Entry_point, Vm, Vm_data
 		subb	$0x20,	\regb
 	9:
 	.ENDM
+
 # TODO: Make general macro for definition of procedures
 Find_word:
  	movl	var_last,	%edx

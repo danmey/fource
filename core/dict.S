@@ -1,4 +1,5 @@
-#include "const.h"
+
+				#include "const.h"
 #include "dict.h"
 #include "ccall.h"
 #include "continuation.h"
@@ -21,6 +22,11 @@
 		pop	%eax
 	Endword
 
+	Defword lor,"or"
+		orl	%eax,(%esp)
+		pop	%eax
+	Endword
+	
 	Defword lshift, "lshift"
 		mov	%eax,%ecx
 		pop	%eax
@@ -155,23 +161,38 @@
 		movzbl	(%eax),%eax
 	Endword
 
-	Defword pushret, ">r"
-		xchg	%esi,%esp
-		push	%eax
-		xchg	%esi,%esp
-		pop	%eax
+	## This two need to be inlined as we operate on return stack
+	## which is also used for subroutine threading
+	Defword pushret, ">r", IMM
+		mov	var_here,%edi
+		EmitB	%edi,	$0x50 # push %eax
+
+		EmitB	%edi,	$0x87 # xchg %esp,%esi
+		EmitB	%edi,	$0xe6 #
+
+		EmitB	%edi,	$0x58 # pop %eax
+
+		EmitB	%edi,	$0x87 # xchg %esp,%esi
+		EmitB	%edi,	$0xe6 #
+		mov	%edi,	var_here
 	Endword
 
+	Defword popret, "r>", IMM
+		mov	var_here,%edi
+		EmitB	%edi,	$0x87 # xchg %esp,%esi
+		EmitB	%edi,	$0xe6 #
+		EmitB	%edi,	$0x50 # push %eax
+		EmitB	%edi,	$0x87 # xchg %esp,%esi
+		EmitB	%edi,	$0xe6 #
+		EmitB	%edi,	$0x58 # pop %eax
+		mov	%edi,	var_here
+	Endword
+
+	### 
 	Defword drop, "drop"
 		pop	%eax
 	Endword
 
-	Defword popret, "r>"
-		push	%eax
-		xchg	%esi,%esp
-		pop	%eax
-		xchg	%esi,%esp
-	Endword
 
 	
 	Defword branch_comma, "branch,",wcode_execute

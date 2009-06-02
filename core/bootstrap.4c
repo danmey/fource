@@ -23,11 +23,14 @@ create ;
 : repeat here - postpone branch, dup swap here - swap 1 - c@    ; immediate
 
 : \ begin key 10 = until ; immediate
-\ Line comments
 
+\ Conditional statements
+: if 0 Postpone 0branch, here ; immediate
+: then dup here swap - swap 1 - c! ; immediate
+: else 0 Postpone branch, here >r dup here swap - swap 1 - c! r> ; immediate
+
+\ Constants
 : Constant : literal postpone ; ;  immediate
 
-
-123 Constant woj
 
 saveimage
