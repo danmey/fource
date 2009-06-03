@@ -11,12 +11,24 @@ $c Constant ah  $d Constant ch  $e Constant dh  $f Constant bh
 4 Constant #sub
 5 Constant #xor
 6 Constant #cmp
+\ Condition codes
+0 Constant eq 1 Constant ne
 \ regsrc regdst modifier -- 
 : addrb, 3 And 6 Lshift swap 7 and Lshift 3 Or swap 7 And Or c, ;
 \ immediate value tag
 : # $ff ;
-: mov, swap dup $ff = if drop $b8 + c, , else swap $8b c, 3 addrb, then ; immediate
-: test [ 100 # bx mov, bx ax mov, ] ;
-123 test . .
+: inc, $40 + c, ; : dec, $48 + c, ;
+: jmp, $eb c, 2 - c, ; immediate 
+: mov, swap dup # = if drop $b8 + c, , else swap $8b c, 3 addrb, then ; immediate
+: test
+    [
+    100 # bx mov,
+    bx ax mov,
+    inc,
+    dec,
+    dec,
+    ] ;
 
-    
+: test-jmp 1 [ here ] dup . [ ax inc, here - jmp, ] ;
+
+\ test-jmp

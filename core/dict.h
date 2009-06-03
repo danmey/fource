@@ -5,6 +5,35 @@
 
 #include "const.h"
 
+	# Align register to some value
+	.MACRO	Align reg, n
+		decl	\reg
+		andl	$~(\n-1),\reg
+		addl	$n,\reg
+	.ENDM
+
+	
+	## TODO: Use some more macros for changing state of VM
+	.MACRO Vm_push val
+		xchgl	%esp,	%esi 	# access parameter stack
+		pushl	%eax
+		mov	\val,%eax
+		xchgl	%esp,	%esi 	# access parameter stack
+	.ENDM
+
+	## Setting top of stack
+	.MACRO Vm_set_TOS val
+		mov	\val, %eax
+	.ENDM
+
+	## Calling absolute address
+	.MACRO Call_abs addr
+		pushl	$1f				  # form call to XT
+		pushl 	\addr
+		ret
+	1:	
+	.ENDM
+
 
 
 	

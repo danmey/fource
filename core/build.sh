@@ -12,10 +12,10 @@ export SFLAGS="-I../shared -c -ggdb3 -Wa,-g"
 # gcc ${SFLAGS} image-tags/image-end.S -o bin/image-end.o
 # gcc ${SFLAGS} image-tags/image-start.S -o bin/image-start.o
 
-rm bin/*
+test -d bin || mkdir bin
+rm -f bin/*
 gcc ${SFLAGS} main.S -o bin/main.o
 gcc ${SFLAGS} gc/gc.c -o bin/gc.o
-test -d bin || mkdir bin
 #cd bin && ar rcs libfource-core.a image-start.o interpret.o literal.o getkey.o mem.o exception.o dict.o image-end.o
 cd bin && ar rcs libfource-core.a main.o
 cd ..

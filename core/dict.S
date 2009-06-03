@@ -228,25 +228,58 @@
 	1:	
 	Endword
 
-	Defword slash,"postpone",wcode_execute
+	Defword tick,"[']"
 		C_Call_safe	Get_word
 		mov	$Token_buffer, %ebx
 		C_Call_edx 	Find_word
 		orl	%edx,%edx
 		jz	1f
-		push	%eax		# push TOS
-		mov	%edx,	%eax	# set TOS to value of literal
-		xchg	%esi,%esp
-		mov	$wcode_compile, %edx
-		pushl	$2f				  # form call to XT
-		pushl 	%edx
-		ret
+		pushl	%eax
+		mov	%edx,%eax
 		jmp	2f
-1:
+1:	
 		Set_continuation_slot $WORD_TO_LONG_EXCEPTION, CNT_DX, Exception_data
 		Call_with_cc_with_context Exception
 2:	
-		xchg	%esi,%esp
+	Endword
+	
+	Defword ccompile,"[compile]", IMM
+		C_Call_safe	Get_word
+		mov	$Token_buffer, %ebx
+		C_Call_edx 	Find_word
+		orl	%edx,%edx
+		jz	1f
+		lea 	Word_header_size(%edx),%ecx
+		mov	var_here,%edi
+		Emit_sub_call 	%ecx
+		mov	%edi,var_here
+		jmp	2f
+1:	
+		Set_continuation_slot $WORD_TO_LONG_EXCEPTION, CNT_DX, Exception_data
+		Call_with_cc_with_context Exception
+2:	
+	Endword
+	
+	Defword slash,"postpone", IMM
+		C_Call_safe	Get_word
+		mov	$Token_buffer, %ebx
+		C_Call_edx 	Find_word
+		orl	%edx,%edx
+		jz	1f
+        	push    %eax            # push TOS
+        	mov     %edx,   %eax    # set TOS to value of literal
+                xchg    %esi,%esp
+                mov     $wcode_compile, %edx
+                pushl   $2f                               # form call to XT
+                pushl   %edx
+                ret
+1:	
+		Set_continuation_slot $WORD_TO_LONG_EXCEPTION, CNT_DX, Exception_data
+		Call_with_cc_with_context Exception
+		jmp	3f
+2:	
+                xchg    %esi,%esp
+3:	
 	Endword
 
 	Defword immediate,"immediate", IMM
