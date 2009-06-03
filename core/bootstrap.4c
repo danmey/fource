@@ -11,11 +11,6 @@ create ;
        postpone [ postpone exit,
        exit, immediate
 
-: find ['] literal ; immediate
-: b postpone find ; immediate
-: p b literal compile ; immediate
-: a p dup ;
-2 a . .
 : here here @ ;
 : 0= 0 = ;
 : cr 10 emit ;

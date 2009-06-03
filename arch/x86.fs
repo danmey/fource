@@ -31,4 +31,4 @@ $c Constant ah  $d Constant ch  $e Constant dh  $f Constant bh
 
 : test-jmp 1 [ here ] dup . [ ax inc, here - jmp, ] ;
 
-\ test-jmp
+test-jmp
