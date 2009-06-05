@@ -13,9 +13,9 @@ create ;
 
 : >body 48 + ;
 : body> 48 - ;
-: >csa 44 + ;
+: >csa 44 + @ ;
 : ['] ' ; immediate
-: (postpone) dup literal >csa @ body> compile, ; 
+: (postpone) dup literal >csa body> compile, ; 
 : postpone ' (postpone) ; immediate
 : here here @ ;
 : 0= 0 = ;
@@ -24,18 +24,23 @@ create ;
 : begin here ; immediate  
 : until here - postpone 0branch, ; immediate
 : \ begin key 10 = until ; immediate
-: r@ postpone r> postpone dup postpone >r ; immediate
 \ Loops continued
-: while 0 postpone 0branch, here  ; immediate
-: repeat here - postpone branch, dup swap here - swap 1 - c@    ; immediate
+: r@ postpone r> postpone dup postpone >r ; immediate
+: over swap dup >r swap r> ;
 : do postpone >r postpone >r here ; immediate
 : loop postpone here ; immediate
 \ Conditional statements
-: if 0 Postpone 0branch, here ; immediate
+: if 0 postpone 0branch, here ; immediate
 : then dup here swap - swap 1 - c! ; immediate
-: else 0 Postpone branch, here >r dup here swap - swap 1 - c! r> ; immediate
+: else 0 postpone branch, here >r dup here swap - swap 1 - c! r> ; immediate
+: while postpone if ; immediate
+: repeat swap here - postpone branch, postpone then ; immediate
+: ?dup dup 0= if drop else dup then ;
 \ Constants
 : Constant : literal postpone ; ;  immediate
-
+: case 0 ; immediate
+: of postpone over postpone = postpone if postpone drop ; immediate
+: endof postpone else ; immediate
+: endcase postpone drop begin ?dup while postpone then  repeat ; immediate
+: b 0 begin 1 while 1 + dup . repeat ;
 saveimage
-
