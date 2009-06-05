@@ -71,7 +71,7 @@ next:
 	
 	movl	$NAMESIZE,	%ecx
 	leal	4(%edx),	%edi
-	mov	%ebx,		%esi
+	mov	$Token_buffer,	%esi
 1:
 # Following chunk of code compares uppercase converted characters
 	xorl	%eax,	%eax

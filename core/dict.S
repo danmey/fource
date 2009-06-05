@@ -45,8 +45,8 @@
 	Endword
 	
 	Defword star, "*"
-		pop	%ebx
-		imul	%ebx,%eax
+		pop	%edx
+		imul	%edx,%eax
 	Endword
 
 	Defword dup, "dup"
@@ -58,11 +58,11 @@
 	Endword
 
 	Defword rot, "rot"
-		pop	%ebx
+		pop	%edx
 		pop	%ecx
 		push	%eax
 		push	%ecx
-		mov	%ebx,%eax
+		mov	%edx,%eax
 	Endword
 
 	Defword dot, "."
@@ -225,7 +225,6 @@
 
 	Defword tick,"'"
 		C_Call_safe	Get_word
-		mov	$Token_buffer, %ebx
 		C_Call_edx 	Find_word
 		orl	%edx,%edx
 		jz	1f
@@ -240,7 +239,6 @@
 	
 	Defword ccompile,"[compile]", IMM
 		C_Call_safe	Get_word
-		mov	$Token_buffer, %ebx
 		C_Call_edx 	Find_word
 		orl	%edx,%edx
 		jz	1f
@@ -265,7 +263,6 @@
 	
 	Defword slash,"postpone", IMM
 		C_Call_safe	Get_word
-		mov	$Token_buffer, %ebx
 		C_Call_edx 	Find_word
 		orl	%edx,%edx
 		jz	1f
