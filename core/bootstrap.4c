@@ -11,10 +11,11 @@ create ;
        postpone [ postpone exit,
        exit, immediate
 
-: body 48 + ;
+: >body 48 + ;
 : body> 48 - ;
+: >csa 44 + ;
 : ['] ' ; immediate
-: (postpone) dup literal 44 + @ body> compile, ; 
+: (postpone) dup literal >csa @ body> compile, ; 
 : postpone ' (postpone) ; immediate
 : here here @ ;
 : 0= 0 = ;
