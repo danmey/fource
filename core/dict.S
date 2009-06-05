@@ -79,11 +79,6 @@
 		pop	%eax
 	Endword
 	
-	Defword body,"body>"
-		# Get the body of the word
-		addl	$Word_header_size,%eax
-	Endword
-	
 	Defword lsqbracket, "]", $wcode_execute
 		movl	$VM_STATE_COMPILING, var_state
 	Endword
