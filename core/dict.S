@@ -92,7 +92,7 @@
 		movl	$VM_STATE_INTERPRETING, var_state
 	Endword
 
-	Defword compile,"compile"
+	Defword compile,"compile,"
 		pusha 
 		mov	var_here, %edi
 		addl	$Word_header_size,%eax
@@ -228,7 +228,7 @@
 	1:	
 	Endword
 
-	Defword tick,"[']"
+	Defword tick,"'"
 		C_Call_safe	Get_word
 		mov	$Token_buffer, %ebx
 		C_Call_edx 	Find_word
@@ -259,6 +259,14 @@
 		Call_with_cc_with_context Exception
 2:	
 	Endword
+
+	Defword test,"test"
+		mov	var_here,%edi
+		Emit_literal %eax
+		Emit_sub_call $wcode_compile
+		mov	%edi, var_here
+		pop	%eax
+	Endword
 	
 	Defword slash,"postpone", IMM
 		C_Call_safe	Get_word
@@ -268,17 +276,18 @@
 		jz	1f
         	push    %eax            # push TOS
         	mov     %edx,   %eax    # set TOS to value of literal
-                xchg    %esi,%esp
+        	xchg    %esi,%esp
                 mov     $wcode_compile, %edx
                 pushl   $2f                               # form call to XT
                 pushl   %edx
                 ret
+
 1:	
 		Set_continuation_slot $WORD_TO_LONG_EXCEPTION, CNT_DX, Exception_data
 		Call_with_cc_with_context Exception
 		jmp	3f
-2:	
-                xchg    %esi,%esp
+2:	        	xchg    %esi,%esp
+
 3:	
 	Endword
 

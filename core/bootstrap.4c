@@ -11,6 +11,9 @@ create ;
        postpone [ postpone exit,
        exit, immediate
 
+: ['] ' ; immediate
+: (postpone) dup literal 44 + @ 48 - compile, ; 
+: postpone ' (postpone) ; immediate
 : here here @ ;
 : 0= 0 = ;
 : cr 10 emit ;
@@ -31,6 +34,5 @@ create ;
 \ Constants
 : Constant : literal postpone ; ;  immediate
 
-\ : a 122 >r r@ . r@ . r> ;
- saveimage
+saveimage
 
