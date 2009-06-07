@@ -87,6 +87,7 @@
 		jmp	4b
 	3:
 		C_Call_safe	printf,$Fmt_temp
+		C_Call_safe	fflush,stdout
 		pop	%eax
 	Endword
 	
@@ -225,11 +226,29 @@
 	Endword
 
 
-	Defword below, "u<"
+	Defword ubelow, "u<"
 		cmp	%eax,(%esp)
 		pop	%eax
 		mov	$-1,%eax
 		jb	1f
+		xor	%eax,%eax
+	1:	
+	Endword
+
+	Defword below, "<"
+		cmp	%eax,(%esp)
+		pop	%eax
+		mov	$-1,%eax
+		jl	1f
+		xor	%eax,%eax
+	1:	
+	Endword
+
+	Defword above, ">"
+		cmp	%eax,(%esp)
+		pop	%eax
+		mov	$-1,%eax
+		jg	1f
 		xor	%eax,%eax
 	1:	
 	Endword
@@ -362,6 +381,7 @@
 
 	Defword emit, "emit"
 		C_Call_safe 	putchar,%eax
+		C_Call_safe	fflush,stdout
 		pop	%eax
 	Endword
 
@@ -376,7 +396,7 @@
 	Endword
 
 	Defword depth,"depth"
-		lea	(CNT_STACK+(STACKDEPTH<<2)-4)(%ebp),%ecx
+		lea	(CNT_STACK+(STACKDEPTH<<2)-8)(%ebp),%ecx
 		sub	%esp,%ecx
 		push	%eax
 		mov	%ecx,%eax

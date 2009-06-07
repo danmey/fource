@@ -20,7 +20,9 @@ create ;
 : here here @ ;
 : <> = invert ;
 : 0= 0 = ;
-; 0<> 0 <> ;
+: 0<> 0 <> ;
+: <= > invert ;
+: >= < invert ;
 : cr 10 emit ;
 : u> u< invert ;
 : begin here ; immediate  
@@ -30,13 +32,15 @@ create ;
 : r@ postpone r> postpone dup postpone >r ; immediate
 : over swap dup >r swap r> ;
 : do postpone swap postpone >r postpone >r here ; immediate
+: ?do postpone swap postpone >r postpone >r here ; immediate
+
 : 1+ 1 + ;
 : 2dup over over ;
 : rdrop postpone r> postpone drop ; immediate
 \ loop statement
-: loop
+: +loop
     postpone r> \ take I value from stack
-    postpone 1+ \ increment
+    postpone + \ increment
     postpone dup 
     postpone r@ \ take last value from stack
     postpone swap \ swap to put the 1+ again
@@ -45,7 +49,7 @@ create ;
     postpone until
     postpone rdrop postpone rdrop \ we are done waste rest of it
 ; immediate
-
+: loop 1 literal postpone +loop ; immediate
 : I postpone R@ ; immediate
 \ Conditional statements
 : if 0 postpone 0branch, here ; immediate
@@ -68,5 +72,6 @@ create ;
 : allot 0 do 0 c, loop ; immediate
 : space $20 emit ;
 : . 0 .r space ;
+: 1- 1 - ;
 
 saveimage
