@@ -1,9 +1,9 @@
 #include "ccall.h"
 	
-Fmt_dec:	.ASCIZ "%d "
-Fmt_hex:	.ASCIZ "%x "
-Fmt_hex_:	.ASCIZ "%#x "	
-Fmt_real:	.ASCIZ "%f "
+Fmt_dec:	.ASCIZ "%d"
+Fmt_hex:	.ASCIZ "%x"
+Fmt_hex_:	.ASCIZ "%#x"	
+Fmt_real:	.ASCIZ "%f"
 _temp_long:	.LONG 0
 
 	

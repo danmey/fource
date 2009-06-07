@@ -65,17 +65,28 @@
 		mov	%edx,%eax
 	Endword
 
-	Defword dot, "."
+	Defword dot, ".r"
+		movl	%eax,	%ecx
+		pop	%eax
 		cmpl	$10, var_base
 		jnz 	1f
-			C_Call_safe printf,%eax,$Fmt_dec
+			C_Call_ret_safe sprintf,%eax,$Fmt_dec,$Fmt_temp
 			jmp	2f
 	1:
 		cmp	$16, var_base
 		jnz 	2f
-			C_Call_safe printf,%eax,$Fmt_hex_
-			jmp	2f
+			C_Call_ret_safe sprintf,%eax,$Fmt_hex_,$Fmt_temp
+	
 	2:
+		subl	%eax,%ecx
+	4:	
+		cmp	$0, %ecx
+		jle	3f
+		C_Call_safe	putchar,$0x20
+		decl	%ecx
+		jmp	4b
+	3:
+		C_Call_safe	printf,$Fmt_temp
 		pop	%eax
 	Endword
 	
@@ -354,6 +365,36 @@
 		pop	%eax
 	Endword
 
+	Defword dlopen,"dlopen"
+		pushl	%eax
+		movl	$dlopen,%eax
+	Endword
+	
+	Defword dlsym,"dlsym"
+		pushl	%eax
+		movl	$dlsym,%eax
+	Endword
+
+	Defword depth,"depth"
+		lea	(CNT_STACK+(STACKDEPTH<<2)-4)(%ebp),%ecx
+		sub	%esp,%ecx
+		push	%eax
+		mov	%ecx,%eax
+		shr	$2,%eax
+	Endword
+
+	Defword pick,"pick"
+		or	%eax,%eax
+		jnz	1f
+		pop	%eax
+		push	%eax
+		jmp	2f
+	1:	
+		dec	%eax
+		movl	(%esp,%eax,4),%eax
+	2:	
+	Endword
+		
 	/*
 	Defword gcalloc,"gc_alloc"
 		C_Call_safe	gc_alloc
@@ -370,7 +411,8 @@
 Vm_Save_image:	 .LONG 0
 image_name:	.ASCIZ "image.fi"
 wb:	.ASCIZ "wb"
-
+Fmt_temp:
+	.FILL 	32
 	.align 32
 Cells:	
 	.FILL 1024*1024

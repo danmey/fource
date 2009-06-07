@@ -1,7 +1,7 @@
 create : 
        0 last @ 36 + !
        postpone create
-       postpone ] exit,
+       postpone ] exit, 
 
 create ; 
        0 last @ 36 + !
@@ -18,7 +18,9 @@ create ;
 : (postpone) dup literal >csa body> compile, ; 
 : postpone ' (postpone) ; immediate
 : here here @ ;
+: <> = invert ;
 : 0= 0 = ;
+; 0<> 0 <> ;
 : cr 10 emit ;
 : u> u< invert ;
 : begin here ; immediate  
@@ -33,14 +35,16 @@ create ;
 : rdrop postpone r> postpone drop ; immediate
 \ loop statement
 : loop
-    postpone r>
-    postpone 1+
-    postpone dup
-    postpone r@
-    postpone swap
+    postpone r> \ take I value from stack
+    postpone 1+ \ increment
+    postpone dup 
+    postpone r@ \ take last value from stack
+    postpone swap \ swap to put the 1+ again
     postpone >r
-    postpone =
-    postpone until postpone rdrop postpone rdrop ; immediate
+    postpone = \ loop until
+    postpone until
+    postpone rdrop postpone rdrop \ we are done waste rest of it
+; immediate
 
 : I postpone R@ ; immediate
 \ Conditional statements
@@ -57,7 +61,12 @@ create ;
 : of postpone over postpone = postpone if postpone drop ; immediate
 : endof postpone else ; immediate
 : endcase postpone drop begin ?dup while postpone then repeat ; immediate
-: a 10 0 do I . loop ;
-
+\ TODO: to be done!
+: ccall [ $ff c, $d0 c, $50 c, ] ;
+: cell 4 ;
+: cells cell * ;
+: allot 0 do 0 c, loop ; immediate
+: space $20 emit ;
+: . 0 .r space ;
 
 saveimage
