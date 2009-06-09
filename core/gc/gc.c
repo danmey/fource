@@ -57,6 +57,7 @@
   byte *ch = CHUNK_AT(i); do { } while(0)
 #define END_FOR_EACH() }
 
+
 void **gc_ref_tab[GC_MAX_REF_COUNT][2];
 int gc_ref_count = 0;
 // need to be aligned!
@@ -73,19 +74,20 @@ void *gc_backpatch_table[GC_MINOR_CHUNKS];
 static void
 set_ref_block(int index, void * start, void * end)
 {
-  if ( start <= end ) {
-    gc_ref_tab[index][0] = start;
-    gc_ref_tab[index][1] = end;
-  } else {
-    gc_ref_tab[index][0] = end;
-    gc_ref_tab[index][1] = start;
-  }
+  gc_ref_tab[index][0] = start;
+  gc_ref_tab[index][1] = end;
 }
 
 
 void
 gc_add_ref (void **mem_begin, void** mem_end)
 {
+  if ( mem_begin == mem_end ) return;
+  if ( mem_begin > mem_end ) {
+    void** t = mem_begin;
+    mem_begin = mem_end;
+    mem_end = t;
+  }
   //  void **ref = r;
   //  if (r == 0 || (!POINTS_MINOR (*ref) && !POINTS_MAJOR (*ref)))
   //    return;
@@ -112,6 +114,12 @@ gc_add_single_ref(void* ref) { gc_add_ref(ref, ref+sizeof(void*)); }
 void
 gc_remove_ref (void* mem_begin, void* mem_end)
 {
+  if ( mem_begin == mem_end ) return;
+  if ( mem_begin > mem_end ) {
+    void** t = mem_begin;
+    mem_begin = mem_end;
+    mem_end = t;
+  }
   //  if ( !POINTS_MINOR(ref) && !POINTS_MAJOR(ref) ) return;
   int i;
   for (i = 0; i < gc_ref_count - 1; ++i)
