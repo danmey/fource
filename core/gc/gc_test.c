@@ -118,7 +118,7 @@ gc_print_refs ();
 
 // remove last pointer
 ADD_REF (ptr6, &gc_major_heap[GC_MAJOR_HEAP_SIZE - sizeof (int)]);
-gc_remove_ref (&ptr6);
+gc_remove_single_ref (&ptr6);
 // replace with minor heap ref (which is already, does nothing)
 gc_add_single_ref (&ptr3);
 gc_print_refs ();
@@ -127,10 +127,10 @@ ADD_REF (ptr8,
 	 &gc_minor_heap[GC_MINOR_HEAP_SIZE - sizeof (int) - sizeof (int)]);
 gc_print_refs ();
 // remove last pointer
-gc_remove_ref (&gc_minor_heap
+gc_remove_single_ref (&gc_minor_heap
 	       [GC_MINOR_HEAP_SIZE - sizeof (int) - sizeof (int)]);
 gc_print_refs ();
-gc_remove_ref (&gc_minor_heap[0]);
+gc_remove_single_ref (&gc_minor_heap[0]);
 gc_print_refs ();
 ADD_REF (ptr9, &gc_minor_heap[0]);
 gc_print_refs ();

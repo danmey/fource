@@ -110,20 +110,22 @@ void
 gc_add_single_ref(void* ref) { gc_add_ref(ref, ref+sizeof(void*)); }
 
 void
-gc_remove_ref (void *ref)
+gc_remove_ref (void* mem_begin, void* mem_end)
 {
   //  if ( !POINTS_MINOR(ref) && !POINTS_MAJOR(ref) ) return;
   int i;
   for (i = 0; i < gc_ref_count - 1; ++i)
-    if (gc_ref_tab[i][0] == ref && gc_ref_tab[i][1] == ref+sizeof(int))
+    if ( (void**)mem_begin >= gc_ref_tab[i][0] && (void**)mem_end <= gc_ref_tab[i][1] )
       {
 	gc_ref_tab[i][0] = 0;
 	return;
       }
 
-  if (gc_ref_tab[gc_ref_count - 1][0] == ref)
+  if ((void**)mem_begin >= gc_ref_tab[i][0] && (void**)mem_end <= gc_ref_tab[i][1] )
     gc_ref_count--;
 }
+
+void gc_remove_single_ref(void* ref) { gc_remove_ref(ref, ref+sizeof(void*)); }
 
 static void
 gc_print_refs ()
