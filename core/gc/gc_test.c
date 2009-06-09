@@ -17,8 +17,8 @@ BEGIN_TEST (02)
 unsigned int *ptr1 = minor_alloc (4);
 unsigned int *ptr2 = minor_alloc (4);
 unsigned int *ptr3 = minor_alloc (4);
-gc_add_ref (&ptr1);
-gc_add_ref (&ptr3);
+gc_add_single_ref (&ptr1);
+gc_add_single_ref (&ptr3);
 mark_minor ();
 gc_print_minor ();
 gc_reset ();
@@ -30,7 +30,7 @@ unsigned int *ptr2 = minor_alloc (4);
 unsigned int *ptr3 = minor_alloc (4);
 *ptr1 = (unsigned int) ptr2;
 *ptr2 = (unsigned int) ptr3;
-gc_add_ref (&ptr1);
+gc_add_single_ref (&ptr1);
 mark_minor ();
 gc_print_minor ();
 gc_reset ();
@@ -40,7 +40,7 @@ BEGIN_TEST (04)
 unsigned int *ptr1 = minor_alloc (4);
 unsigned int *ptr2 = minor_alloc (4);
 unsigned int *ptr3 = minor_alloc (4);
-gc_add_ref (&ptr1);
+gc_add_single_ref (&ptr1);
 *ptr1 = (unsigned int) ptr2;
 *ptr2 = (unsigned int) ptr3;
 *ptr3 = (unsigned int) ptr1;
@@ -54,7 +54,7 @@ unsigned int *ptr1 = minor_alloc (252);
 unsigned int *ptr2 = minor_alloc (252);
 unsigned int *ptr3 = minor_alloc (252);
 unsigned int *ptr4 = minor_alloc (252);
-gc_add_ref (&ptr1);
+gc_add_single_ref (&ptr1);
 ptr1[0] = (unsigned int) ptr2;
 ptr1[3] = 3;
 ptr1[4] = 5;
@@ -98,10 +98,10 @@ BEGIN_TEST (09) gc_reset ();
 // Initial empty ref table
 gc_print_refs ();
 // Adding invalid reference, shouldnt alter the table
-gc_add_ref (0);
+gc_add_single_ref (0);
 gc_print_refs ();
 
-#define ADD_REF(name, ptr) byte* name = ptr; gc_add_ref(&name);
+#define ADD_REF(name, ptr) byte* name = ptr; gc_add_single_ref(&name);
 // adding one reference from minor heap
 ADD_REF (ptr1, &gc_minor_heap[0]) gc_print_refs ();
 
@@ -112,15 +112,15 @@ ADD_REF (ptr2, &gc_minor_heap[GC_MINOR_HEAP_SIZE]);
 // last pointer on minor heap
 ADD_REF (ptr3, &gc_minor_heap[GC_MINOR_HEAP_SIZE - sizeof (int)]);
 // invalid major heap pointer
-gc_add_ref (&ptr2);
-gc_add_ref (&ptr3);
+gc_add_single_ref (&ptr2);
+gc_add_single_ref (&ptr3);
 gc_print_refs ();
 
 // remove last pointer
 ADD_REF (ptr6, &gc_major_heap[GC_MAJOR_HEAP_SIZE - sizeof (int)]);
 gc_remove_ref (&ptr6);
 // replace with minor heap ref (which is already, does nothing)
-gc_add_ref (&ptr3);
+gc_add_single_ref (&ptr3);
 gc_print_refs ();
 // add pointer at the end
 ADD_REF (ptr8,
@@ -162,7 +162,7 @@ printf ("\t%d\n", MIN_OFFS (ptr2[0]));
 printf ("\t%d\n", MIN_OFFS (ptr3[0]));
 printf ("\t%d\n", MIN_OFFS (ptr4[0]));
 printf ("\t%d\n", MIN_OFFS (ptr5[0]));
-gc_add_ref (&ptr1);
+gc_add_single_ref (&ptr1);
 mark_minor ();
 copy_minor_heap ();
 printf ("**Printing referenced major heap offsets\n");
@@ -188,7 +188,7 @@ ptr2[1] = (unsigned int) ptr2;
 printf ("**Printing referenced minor heap offsets\n");
 printf ("\t%d\t%d\n", MIN_OFFS (ptr1[0]), MIN_OFFS (ptr1[1]));
 printf ("\t%d\t%d\n", MIN_OFFS (ptr2[0]), MIN_OFFS (ptr2[1]));
-gc_add_ref (&ptr1);
+gc_add_single_ref (&ptr1);
 mark_minor ();
 copy_minor_heap ();
 printf ("**Printing referenced major heap offsets\n");
@@ -215,7 +215,7 @@ for (i = 0; i < GC_MINOR_CHUNKS; i++)
 	if (beg_list == 0)
 	  {
 	    beg_list = prev;
-	    gc_add_ref (&beg_list);
+	    gc_add_single_ref (&beg_list);
 	  }
       }
     prev = ptr;

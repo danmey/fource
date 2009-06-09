@@ -1,4 +1,4 @@
-0xa08c460
+0xa0cc460
 Running test 01
 **List of minor heap allocated 7 chunks
 	chunk 0000	size 256	marked n
@@ -67,36 +67,43 @@ Test 08 completed
 Running test 09
 **List of stored references. 0 references.
 **End of stored ref list
-**List of stored references. 0 references.
+**List of stored references. 1 references.
+	Empty slot
 **End of stored ref list
 **List of stored references. 1 references.
 	Reference pointing to 00000000(minor)	
 **End of stored ref list
-**List of stored references. 2 references.
+**List of stored references. 3 references.
 	Reference pointing to 00000000(minor)	
-	Reference pointing to 0000fffc(minor)	
-**End of stored ref list
-**List of stored references. 2 references.
-	Reference pointing to 00000000(minor)	
+	Reference pointing to 0a0dc460(??)	
 	Reference pointing to 0000fffc(minor)	
 **End of stored ref list
 **List of stored references. 3 references.
 	Reference pointing to 00000000(minor)	
+	Reference pointing to 0a0dc460(??)	
 	Reference pointing to 0000fffc(minor)	
-	Reference pointing to 0000fff8(minor)	
 **End of stored ref list
-**List of stored references. 3 references.
+**List of stored references. 4 references.
 	Reference pointing to 00000000(minor)	
-	Reference pointing to 0000fffc(minor)	
-	Reference pointing to 0000fff8(minor)	
-**End of stored ref list
-**List of stored references. 3 references.
-	Reference pointing to 00000000(minor)	
+	Reference pointing to 0a0dc460(??)	
 	Reference pointing to 0000fffc(minor)	
 	Reference pointing to 0000fff8(minor)	
 **End of stored ref list
 **List of stored references. 4 references.
 	Reference pointing to 00000000(minor)	
+	Reference pointing to 0a0dc460(??)	
+	Reference pointing to 0000fffc(minor)	
+	Reference pointing to 0000fff8(minor)	
+**End of stored ref list
+**List of stored references. 4 references.
+	Reference pointing to 00000000(minor)	
+	Reference pointing to 0a0dc460(??)	
+	Reference pointing to 0000fffc(minor)	
+	Reference pointing to 0000fff8(minor)	
+**End of stored ref list
+**List of stored references. 5 references.
+	Reference pointing to 00000000(minor)	
+	Reference pointing to 0a0dc460(??)	
 	Reference pointing to 0000fffc(minor)	
 	Reference pointing to 0000fff8(minor)	
 	Reference pointing to 00000000(minor)	

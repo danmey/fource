@@ -11,6 +11,7 @@ create ;
        postpone [ postpone exit,
        exit, immediate
 
+
 : >body 48 + ;
 : body> 48 - ;
 : >csa 44 + @ ;
@@ -73,5 +74,8 @@ create ;
 : space $20 emit ;
 : . 0 .r space ;
 : 1- 1 - ;
+: bl $20 ;
+: unhide 0 literal postpone last postpone @ 36 literal postpone + postpone ! ; 
+: create : postpone here postpone ; ; immediate
 
 saveimage
