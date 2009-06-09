@@ -55,8 +55,16 @@
 #define CHUNK_OFFSET(ch) ((((ch))-&gc_minor_heap[0])/GC_MINOR_CHUNK_SIZE)
 #define FOR_EACH_MINCH(ch)  for(i=0; i < gc_cur_min_chunk; ++i) {	\
   byte *ch = CHUNK_AT(i); do { } while(0)
-#define END_FOR_EACH() }
+#define END_FOR_EACH_MINCH() }
 
+#define FOR_EACH_REF(ref,counter)					\
+  int counter;								\
+  for( counter=0; counter<gc_ref_count;++counter) {			\
+    void** ref;								\
+  for(ref = gc_ref_tab[counter][0]; ref < gc_ref_tab[counter][1]; ref++) { \
+  if ( ref != 0 ) {
+
+#define END_FOR_EACH_REF() } } }
 
 void **gc_ref_tab[GC_MAX_REF_COUNT][2];
 int gc_ref_count = 0;
@@ -138,30 +146,27 @@ void gc_remove_single_ref(void* ref) { gc_remove_ref(ref, ref+sizeof(void*)); }
 static void
 gc_print_refs ()
 {
-  int i;
   printf ("**List of stored references. %d references.\n", gc_ref_count);
-  for (i = 0; i < gc_ref_count; ++i)
-    {
-      if (gc_ref_tab[i][0] != 0)
-	{
-	  char *points_to = "??";
-	  void *heap = 0;
-	  if (POINTS_MINOR (*gc_ref_tab[i][0]))
-	    {
-	      points_to = "minor";
-	      heap = gc_minor_heap;
-	    }
-	  if (POINTS_MAJOR (*gc_ref_tab[i][0]))
-	    {
-	      points_to = "major";
-	      heap = gc_major_heap;
-	    }
-	  printf ("\tReference pointing to %.8x(%s)\t\n",
-		  *gc_ref_tab[i][0] - heap, points_to, *gc_ref_tab[i][0]);
+  FOR_EACH_REF(ref, i)
+    if ( gc_ref_tab[i][0] != 0 ) {
+      char *points_to = "??";
+	void *heap = 0;
+	if (POINTS_MINOR (*gc_ref_tab[i][0]))
+	  {
+	    points_to = "minor";
+	    heap = gc_minor_heap;
+	  }
+	if (POINTS_MAJOR (*gc_ref_tab[i][0]))
+	  {
+	    points_to = "major";
+	    heap = gc_major_heap;
 	}
-      else
-	printf ("\tEmpty slot\n");
+	printf ("\tReference pointing to %.8x(%s)\t\n",
+		*gc_ref_tab[i][0] - heap, points_to, *gc_ref_tab[i][0]);
     }
+    else
+      printf ("\tEmpty slot\n");
+  END_FOR_EACH_REF()
   printf ("**End of stored ref list\n");
 }
 
@@ -225,15 +230,15 @@ static void
 mark_minor ()
 {
   memset (gc_backpatch_table, 0, sizeof (gc_backpatch_table));
-  int i;
-  for (i = 0; i < gc_ref_count; ++i)
+  FOR_EACH_REF(ref, i)
     {
-      if (gc_ref_tab[i][0] != 0 && REF_PTR (*gc_ref_tab[i][0]))
+      if (REF_PTR (*ref))
 	{
-	  byte *ch = MINOR_CHUNK (*gc_ref_tab[i][0]);
+	  byte *ch = MINOR_CHUNK (*ref);
 	  mark_chunk (ch);
 	}
     }
+  END_FOR_EACH_REF()
 }
 
 static void *
@@ -303,28 +308,24 @@ add_minor_chunk_refs (byte * ch)
 static void
 backpatch_refs ()
 {
-  int i;
-  for (i = 0; i < gc_ref_count; ++i)
+  FOR_EACH_REF(ptr, i)
     {
-      if (gc_ref_tab[i][0] != 0)
+      if (POINTS_MINOR (*ptr))
 	{
-	  void **ptr = (void **) gc_ref_tab[i][0];
-	  if (POINTS_MINOR (*ptr))
+	  byte *ch = MINOR_CHUNK (*ptr);
+	  if (MARKED (ch))
 	    {
-	      byte *ch = MINOR_CHUNK (*ptr);
-	      if (MARKED (ch))
-		{
-		  byte *new_ptr =
-		    (byte *) gc_backpatch_table[CHUNK_OFFSET (ch)];
+	      byte *new_ptr =
+		(byte *) gc_backpatch_table[CHUNK_OFFSET (ch)];
 		  if (new_ptr != 0)
 		    {
 		      int delta = new_ptr - ch;
 		      *ptr += delta;
 		    }
-		}
 	    }
 	}
     }
+  END_FOR_EACH_REF();
 }
 
 void gc_print_major ();
@@ -344,7 +345,7 @@ copy_minor_heap ()
       }
   }
   //  gc_print_major();
-  END_FOR_EACH ();
+  END_FOR_EACH_MINCH ();
 
   backpatch_refs ();
 
@@ -352,7 +353,7 @@ copy_minor_heap ()
   {
     backpatch_chunk (ch);
   }
-  END_FOR_EACH ();
+  END_FOR_EACH_MINCH ();
 
   FOR_EACH_MINCH (ch);
   {
@@ -364,7 +365,7 @@ copy_minor_heap ()
 	memcpy (new_ptr, ch, CHUNK_SIZE (ch));
       }
   }
-  END_FOR_EACH ();
+  END_FOR_EACH_MINCH ();
 }
 
 static void
@@ -380,15 +381,9 @@ darken_chunk (byte * ptr)
 static void
 darken_roots ()
 {
-  int i;
-  for (i = 0; i < gc_ref_count; ++i)
-    {
-      if (gc_ref_tab[i][0] != 0)
-	{
-	  void **ptr = gc_ref_tab[i][0];
-	  darken_chunk (*ptr);
-	}
-    }
+  FOR_EACH_REF(ptr, i)
+      darken_chunk (*ptr);
+  END_FOR_EACH_REF();
 }
 
 static void
@@ -506,7 +501,7 @@ gc_print_minor ()
     printf ("\tchunk %.4d\tsize %.3d\tmarked %c\n", CHUNK_OFFSET (ch),
 	    CHUNK_SIZE (ch), (MARKED (ch) ? 'y' : 'n'));
   }
-  END_FOR_EACH ();
+  END_FOR_EACH_MINCH ();
   printf ("**End of minor chunks list\n");
 }
 
