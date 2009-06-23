@@ -81,7 +81,7 @@
 
 	.MACRO Define_continuation_context name
 			.ALIGN	32
-			Vm_alloc	\name, CNT_SIZE
+			Vm_alloc	\name, CNT_SIZE+4*PAGE_SIZE
 	.ENDM
 
 
@@ -108,8 +108,8 @@
 		jnz	9f
 
 		## Initialize stack pointers
-		lea	(CNT_RET_STACK	+(STACKDEPTH<<2)-4)(%ebp),%esp
-		lea	(CNT_STACK +     (STACKDEPTH<<2)-4)(%ebp),%esi
+		lea	(CNT_RET_STACK	+(PAGE_SIZE*2)-4)(%ebp),%esp
+		lea	(CNT_STACK +     (PAGE_SIZE*2)-4)(%ebp),%esi
 
 		## Trick, in first invocation it points to 8f 
 		movl	$8f,	CNT_IP(%ebp)

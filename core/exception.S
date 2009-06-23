@@ -1,37 +1,6 @@
 #include "continuation.h"	
 	Vm_alloc Vm_Exception_handler,4
-
-
-	
-
-	.MACRO Struct
-		.struct 0
-	.ENDM
-
-
-	
-	.MACRO Field label, len
-		\label\():	.struct \label+\len
-	.ENDM
-
-
-	
-	.MACRO End_struct
-	.ENDM
-
-
-
-	Struct
-		field 	exc_context, 	CNT_REG_SIZE
-		field	exc_stack_ptr, 4
-		field	exc_ret_stack_ptr, 4
-		field	exc_id, 4
-		field 	exc_word_name,4
-		field 	ext_size, 0
-	End_struct
-
-	.TEXT
-	Vm_alloc Vm_Exception_context, ext_size
+	Vm_alloc Vm_Exception_context, 64
 
 Msg_Exception_handler_not_def:
 	.asciz "*Error: Uncought Fource kernel exception!\n"

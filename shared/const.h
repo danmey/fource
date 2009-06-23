@@ -69,7 +69,7 @@
 #define WORD_NOT_FOUND_EXCEPTION	2
 #define WORD_TO_LONG_EXCEPTION          3
 
-#define STACKDEPTH 1024
+#define STACKDEPTH 2048
 // TODO: Get rid of most of this rubbish
 #define CNT_CONTEXT 0
 #define CNT_DI 	 0
@@ -83,9 +83,9 @@
 #define CNT_OLD_SP  32
 #define CNT_IP	36
 #define CNT_REG_SIZE	40
-#define CNT_STACK     ((CNT_REG_SIZE)+4)
-#define CNT_RET_STACK ((CNT_STACK)    +((STACKDEPTH)<<2)+4)
-#define CNT_EXIT      ((CNT_RET_STACK)+((STACKDEPTH)<<2)+4)
+#define CNT_STACK     (PAGE_SIZE*3)
+#define CNT_RET_STACK (CNT_STACK+3*PAGE_SIZE)
+#define CNT_EXIT      ((CNT_RET_STACK)+PAGE_SIZE)
 #define CNT_INIT      ((CNT_EXIT)+4)
 #define CNT_EXIT_DATA ((CNT_INIT)+4)
 #define CNT_CONTINUATION ((CNT_EXIT_DATA)+4)
@@ -95,4 +95,5 @@
 #define WOFFS_COMPILATION_TOKEN (Word_semantics+4)
 #define WOFFS_FLAGS Word_flags
 
+#define PAGE_SIZE 4096
 

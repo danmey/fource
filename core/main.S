@@ -5,8 +5,10 @@
 	.GLOBL Vm_image_start
 	.GLOBL Vm_image_end
 
+	.text
 .ALIGN 4096
 Vm_image_start:
+ 	.ascii "IMG_START"
 
 #include "interpret.S"
 #include "literal.S"
@@ -17,5 +19,6 @@ Vm_image_start:
 
 .ALIGN 4096
 Vm_image_end:
+ 	.ascii "IMG_END"
 
 	

@@ -58,6 +58,7 @@ Reg_ESP:	.LONG 0
 	.ENDM
 
 	.MACRO Vm_alloc lab, bytes
+	  .ALIGN 4096
 		\lab:	.FILL \bytes
 	.ENDM
 

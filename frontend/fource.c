@@ -70,7 +70,7 @@ load_image(const char* file_name)
 {
   FILE* f = fopen(file_name, "rb");
   if ( f == 0 ) abort();
-  fread(&Vm_image_start, 1, &Vm_image_end - &Vm_image_start, f);
+  fread(&Vm_image_start, &Vm_image_end - &Vm_image_start,1, f);
   fclose(f);
 }
 
@@ -130,8 +130,9 @@ int kernel_exception_handler(Vm_Exception_t* ex)
 
 void dump_image()
 {
+  enable_memory_block(&Vm_image_start, &Vm_image_end);
   FILE* f = fopen("image.fi", "wb");
-  fwrite(&Vm_image_start, &Vm_image_end - &Vm_image_start, 1, f);
+  fwrite(&Vm_image_start, 1, &Vm_image_end - &Vm_image_start, f);
   fclose(f);
 }
 
@@ -144,7 +145,6 @@ void run_repl()
     {
     case 0: case 1:
       {
-	Vm_reset();
 	static char line[257];
 	while( EOF != just_one_line(stdin, 256, line) )
 	  {

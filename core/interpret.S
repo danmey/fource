@@ -43,8 +43,8 @@ compile_literal:
 	jmp 	vm_loop
 	
 Vm_eval:
-	call 	init_mem
 	Vm_Save_context Enviroment_context
+	call Vm_init
 	push	%ebp
 	mov	%esp,%ebp
 	mov	8(%ebp),%eax
@@ -68,7 +68,7 @@ Continuation_entry Vm_Entry_point, Vm, Vm_data
 Find_word:
  	movl	var_last,	%edx
 next:
-	
+ 
 	movl	$NAMESIZE,	%ecx
 	leal	4(%edx),	%edi
 	mov	$Token_buffer,	%esi
@@ -96,8 +96,8 @@ not_found:
 	xor	%eax,	%eax
 	ret
 
-Vm_reset:	
-	Reset_continuation Vm
+Vm_reset:
+	Exit_continuation_ret
 	ret
 	
 	
