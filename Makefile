@@ -1,6 +1,6 @@
 all:	
 	echo `test ! -d bin && mkdir bin` > /dev/null
-	cd core && ./build.sh
+	cd core && ./build.sh --with-gc
 	cp core/bin/libfource-core.a bin/libfource-core.a
 	cd frontend && make && cp bin/* ../bin
 .PHONY : clean

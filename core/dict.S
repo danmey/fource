@@ -415,12 +415,16 @@
 	2:	
 	Endword
 		
-	/*
+#ifdef WITH_GC
 	Defword gcalloc,"gc_alloc"
-		C_Call_safe	gc_alloc
+		pushal
 		push	%eax
+		call	gc_alloc
+		add	$4, %esp
+		mov	%eax,28(%esp)
+		popal
 	Endword
-	*/
+#endif				
 	
 	Defword saveimage, "saveimage"
 	# a dirty hack :)

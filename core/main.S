@@ -10,12 +10,18 @@
 Vm_image_start:
  	.ascii "IMG_START"
 
+#ifdef WITH_GC
+#include "gc/gc.S"
+#endif
 #include "interpret.S"
 #include "literal.S"
 #include "getkey.S"
 #include "mem.S"
 #include "exception.S"
 #include "dict.S"
+#ifdef WITH_GC
+#include "trailer.S"
+#endif
 
 .TEXT 1
 .ALIGN 4096
