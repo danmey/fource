@@ -17,6 +17,7 @@ Vm_image_start:
 #include "exception.S"
 #include "dict.S"
 
+.TEXT 1
 .ALIGN 4096
 Vm_image_end:
  	.ascii "IMG_END"

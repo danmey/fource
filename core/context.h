@@ -40,7 +40,9 @@
 		popal
 		movl	(32+\ofs)(\reg),%esp
 	.ENDM
+.TEXT 1
 Reg_ESP:	.LONG 0
+.TEXT
 	.MACRO Vm_Restore_general_reg reg,ofs
 		movl	%esp, Reg_ESP
 		leal	\ofs(\reg),	%esp
@@ -58,8 +60,10 @@ Reg_ESP:	.LONG 0
 	.ENDM
 
 	.MACRO Vm_alloc lab, bytes
+	  .TEXT 1
 	  .ALIGN 4096
 		\lab:	.FILL \bytes
+	  .TEXT
 	.ENDM
 
 

@@ -436,7 +436,7 @@ Fmt_temp:
 	.align 32
 Cells:	
 	.FILL 1024*1024
-
+.TEXT
 
 
 	

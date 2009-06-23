@@ -8,8 +8,10 @@
 	
 
 		Define_context Vm_context
+	.TEXT 1
 	Input_stream:	.LONG	0
 	fmt_str:	.ASCIZ "%s "
+	.TEXT
 	Vm_alloc 	Token_buffer, 32
 
 	

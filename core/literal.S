@@ -1,11 +1,13 @@
 #include "ccall.h"
-	
+
+.TEXT 1
 Fmt_dec:	.ASCIZ "%d"
 Fmt_hex:	.ASCIZ "%x"
 Fmt_hex_:	.ASCIZ "%#x"	
 Fmt_real:	.ASCIZ "%f"
+	
 _temp_long:	.LONG 0
-
+.TEXT
 	
 ################################################################################	
 # Parse literal, string is in _token

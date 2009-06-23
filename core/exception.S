@@ -2,9 +2,10 @@
 	Vm_alloc Vm_Exception_handler,4
 	Vm_alloc Vm_Exception_context, 64
 
+	.TEXT 1
 Msg_Exception_handler_not_def:
 	.asciz "*Error: Uncought Fource kernel exception!\n"
-
+.TEXT 
 	
 Define_continuation_with_context Exception
 exception_loop:	
